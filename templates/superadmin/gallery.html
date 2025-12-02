@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery - Super Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .gallery-item {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 min-h-screen">
+    <!-- Navigation -->
+    <nav class="gradient-bg shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-images text-white text-2xl mr-3"></i>
+                    <h1 class="text-white text-xl font-bold">Gallery</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('superadmin.dashboard') }}"
+                        class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition duration-300">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                    </a>
+                    <a href="{{ url_for('logout') }}"
+                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-300">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Stats Bar -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white/80 text-sm">Screenshots</p>
+                        <p class="text-3xl font-bold" id="screenshots-count">0</p>
+                    </div>
+                    <i class="fas fa-camera text-4xl text-white/60"></i>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white/80 text-sm">Recordings</p>
+                        <p class="text-3xl font-bold" id="recordings-count">0</p>
+                    </div>
+                    <i class="fas fa-video text-4xl text-white/60"></i>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white/80 text-sm">Total Size</p>
+                        <p class="text-3xl font-bold" id="total-size">0 MB</p>
+                    </div>
+                    <i class="fas fa-hdd text-4xl text-white/60"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="bg-white rounded-xl shadow-lg p-4 mb-8">
+            <div class="flex space-x-4">
+                <button onclick="filterGallery('all')"
+                    class="filter-btn active px-6 py-2 rounded-lg font-semibold transition-all">
+                    <i class="fas fa-th mr-2"></i>All
+                </button>
+                <button onclick="filterGallery('image')"
+                    class="filter-btn px-6 py-2 rounded-lg font-semibold transition-all">
+                    <i class="fas fa-image mr-2"></i>Screenshots
+                </button>
+                <button onclick="filterGallery('video')"
+                    class="filter-btn px-6 py-2 rounded-lg font-semibold transition-all">
+                    <i class="fas fa-video mr-2"></i>Recordings
+                </button>
+            </div>
+        </div>
+
+        <!-- Gallery Grid -->
+        <div id="gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Items will be loaded here -->
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading-state" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+            <p class="text-white mt-4">Loading gallery...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden text-center py-12">
+            <i class="fas fa-images text-6xl text-gray-600 mb-4"></i>
+            <p class="text-gray-400 text-xl">No items in gallery yet</p>
+            <p class="text-gray-500 mt-2">Screenshots and recordings will appear here</p>
+        </div>
+    </div>
+
+    <!-- Image/Video Modal -->
+    <div id="mediaModal" class="modal">
+        <button onclick="closeModal()" class="absolute top-4 right-4 text-white text-4xl z-10">
+            <i class="fas fa-times"></i>
+        </button>
+        <img id="modalImage" class="modal-content hidden" alt="Gallery Item">
+        <video id="modalVideo" class="modal-content hidden" controls></video>
+    </div>
+
+    <script>
+        let allFiles = [];
+        let currentFilter = 'all';
+
+        // Load gallery on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadGallery();
+        });
+
+        async function loadGallery() {
+            try {
+                const response = await fetch('/superadmin/api/gallery');
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    allFiles = data.files;
+                    updateStats();
+                    renderGallery();
+                } else {
+                    showError('Failed to load gallery');
+                }
+            } catch (error) {
+                console.error('Error loading gallery:', error);
+                showError('Connection error');
+            }
+        }
+
+        function updateStats() {
+            const screenshots = allFiles.filter(f => f.type === 'image').length;
+            const recordings = allFiles.filter(f => f.type === 'video').length;
+            const totalSize = allFiles.reduce((sum, f) => sum + f.size, 0) / (1024 * 1024);
+
+            document.getElementById('screenshots-count').textContent = screenshots;
+            document.getElementById('recordings-count').textContent = recordings;
+            document.getElementById('total-size').textContent = totalSize.toFixed(2) + ' MB';
+        }
+
+        function renderGallery() {
+            const grid = document.getElementById('gallery-grid');
+            const loadingState = document.getElementById('loading-state');
+            const emptyState = document.getElementById('empty-state');
+
+            // Filter files
+            let filtered = allFiles;
+            if (currentFilter !== 'all') {
+                filtered = allFiles.filter(f => f.type === currentFilter);
+            }
+
+            // Hide loading
+            loadingState.classList.add('hidden');
+
+            // Check if empty
+            if (filtered.length === 0) {
+                grid.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            // Show grid
+            grid.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+
+            // Render items
+            grid.innerHTML = filtered.map(file => {
+                const isImage = file.type === 'image';
+                const icon = isImage ? 'fa-image' : 'fa-video';
+                const color = isImage ? 'purple' : 'blue';
+                const date = new Date(file.created_at).toLocaleString();
+                const size = (file.size / 1024).toFixed(2) + ' KB';
+
+                return `
+                    <div class="gallery-item bg-white rounded-xl shadow-lg overflow-hidden" data-type="${file.type}">
+                        <div class="relative aspect-video bg-gray-900 flex items-center justify-center cursor-pointer"
+                            onclick="openModal('${file.url}', '${file.type}')">
+                            ${isImage ?
+                        `<img src="${file.url}" alt="${file.name}" class="w-full h-full object-cover">` :
+                        `<i class="fas ${icon} text-6xl text-${color}-500"></i>`
+                    }
+                            <div class="absolute top-2 right-2 bg-black/60 text-white px-2 py-1 rounded text-xs">
+                                <i class="fas ${icon}"></i>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <p class="font-semibold text-gray-800 truncate" title="${file.name}">${file.name}</p>
+                            <p class="text-xs text-gray-500 mt-1">${date}</p>
+                            <p class="text-xs text-gray-500">${size}</p>
+                            <div class="mt-3 flex space-x-2">
+                                <a href="${file.url}" download="${file.name}"
+                                    class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg text-center text-sm transition-all">
+                                    <i class="fas fa-download mr-1"></i>Download
+                                </a>
+                                <button onclick="deleteFile('${file.name}')"
+                                    class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg text-sm transition-all">
+                                    <i class="fas fa-trash mr-1"></i>Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterGallery(type) {
+            currentFilter = type;
+
+            // Update button styles
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-purple-600', 'text-white');
+                btn.classList.add('text-gray-700', 'hover:bg-gray-100');
+            });
+
+            event.target.classList.add('active', 'bg-purple-600', 'text-white');
+            event.target.classList.remove('text-gray-700', 'hover:bg-gray-100');
+
+            renderGallery();
+        }
+
+        function openModal(url, type) {
+            const modal = document.getElementById('mediaModal');
+            const img = document.getElementById('modalImage');
+            const video = document.getElementById('modalVideo');
+
+            if (type === 'image') {
+                img.src = url;
+                img.classList.remove('hidden');
+                video.classList.add('hidden');
+            } else {
+                video.src = url;
+                video.classList.remove('hidden');
+                img.classList.add('hidden');
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('mediaModal');
+            const video = document.getElementById('modalVideo');
+
+            modal.classList.remove('active');
+            video.pause();
+        }
+
+        async function deleteFile(filename) {
+            if (!confirm(`Delete ${filename}?`)) return;
+
+            try {
+                const response = await fetch(`/superadmin/api/gallery/${filename}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    showSuccess('File deleted successfully');
+                    loadGallery();
+                } else {
+                    showError(data.message || 'Failed to delete file');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                showError('Connection error');
+            }
+        }
+
+        function showSuccess(message) {
+            // Simple toast notification
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function showError(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Close modal on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // Style for active filter button
+        const style = document.createElement('style');
+        style.textContent = `
+            .filter-btn {
+                background: transparent;
+                color: #374151;
+            }
+            .filter-btn:hover {
+                background: #f3f4f6;
+            }
+            .filter-btn.active {
+                background: #7c3aed;
+                color: white;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+
+</html>

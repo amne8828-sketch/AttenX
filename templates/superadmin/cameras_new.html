@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Manager - Super Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .camera-card {
+            transition: all 0.3s ease;
+        }
+
+        .camera-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="gradient-bg shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="{{ url_for('superadmin.dashboard') }}" class="text-white hover:text-gray-200 mr-4">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <i class="fas fa-video text-white text-2xl mr-3"></i>
+                    <h1 class="text-white text-xl font-bold">Camera Manager</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="openAddCameraModal()"
+                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition duration-300">
+                        <i class="fas fa-plus mr-2"></i>Add Camera
+                    </button>
+                    <div class="text-white">
+                        <i class="fas fa-user-circle mr-2"></i>
+                        {{ superadmin.name or superadmin.email }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Camera Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-100">
+                        <i class="fas fa-video text-blue-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-semibold text-gray-800">Total Cameras</h3>
+                        <p class="text-2xl font-bold text-blue-600" id="total-cameras">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-green-100">
+                        <i class="fas fa-play-circle text-green-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-semibold text-gray-800">Active Cameras</h3>
+                        <p class="text-2xl font-bold text-green-600" id="active-cameras">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-red-100">
+                        <i class="fas fa-stop-circle text-red-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-semibold text-gray-800">Inactive Cameras</h3>
+                        <p class="text-2xl font-bold text-red-600" id="inactive-cameras">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Camera Grid -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">
+                    <i class="fas fa-video mr-2"></i>Camera List
+                </h2>
+                <button onclick="refreshCameras()"
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition duration-300">
+                    <i class="fas fa-sync-alt mr-2"></i>Refresh
+                </button>
+            </div>
+
+            <div id="cameras-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Cameras will be loaded here -->
+            </div>
+        </div>
+        <!-- Analytics Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+            <!-- Chart -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-chart-line mr-2 text-purple-500"></i>Camera Activity (24h)
+                </h3>
+                <div class="h-64">
+                    <canvas id="cameraActivityChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Logs -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-list-alt mr-2 text-blue-500"></i>Recent Logs
+                </h3>
+                <div class="overflow-y-auto h-64">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left">Time</th>
+                                <th class="px-4 py-2 text-left">Action</th>
+                                <th class="px-4 py-2 text-left">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="camera-logs-body">
+                            <!-- Logs loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Camera Modal -->
+    <div id="addCameraModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl shadow-xl max-w-md w-full">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800" id="modalTitle">Add New Camera</h3>
+                        <button onclick="closeAddCameraModal()" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <form id="addCameraForm" onsubmit="handleCameraSubmit(event)">
+                        <input type="hidden" name="camera_id" id="edit_camera_id">
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Camera Name</label>
+                                <input type="text" name="name" id="camera_name" required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Enter camera name">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Purpose</label>
+                                <div class="flex space-x-4">
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" name="purpose" value="attendance"
+                                            class="form-checkbox text-blue-600" checked>
+                                        <span class="ml-2">Attendance</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" name="purpose" value="enrollment"
+                                            class="form-checkbox text-purple-600">
+                                        <span class="ml-2">Enrollment</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Source Type</label>
+                                <select name="source_type" id="source_type" onchange="toggleSourceFields()"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="opencv">Local Camera (OpenCV)</option>
+                                    <option value="rtsp">IP Camera (RTSP/HTTP)</option>
+                                </select>
+                            </div>
+
+                            <div id="opencv-fields">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Camera Index</label>
+                                <input type="number" name="camera_index" id="camera_index" min="0" value="0"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="0, 1, 2...">
+                            </div>
+
+                            <div id="rtsp-fields" class="hidden">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Stream URL</label>
+                                <input type="url" name="stream_url" id="stream_url"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="rtsp://username:password@ip:port/stream">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Width</label>
+                                    <input type="number" name="resolution_width" id="res_width" value="640"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Height</label>
+                                    <input type="number" name="resolution_height" id="res_height" value="480"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">FPS</label>
+                                <input type="number" name="fps" id="fps" value="30" min="1" max="60"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end space-x-3 mt-6">
+                            <button type="button" onclick="closeAddCameraModal()"
+                                class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                Cancel
+                            </button>
+                            <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                                id="submitBtn">
+                                <i class="fas fa-plus mr-2"></i>Save Camera
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function () {
+            loadCameras();
+            loadCameraLogs();
+        });
+
+        function toggleSourceFields() {
+            const sourceType = document.querySelector('select[name="source_type"]').value;
+            const opencvFields = document.getElementById('opencv-fields');
+            const rtspFields = document.getElementById('rtsp-fields');
+
+            if (sourceType === 'opencv') {
+                opencvFields.classList.remove('hidden');
+                rtspFields.classList.add('hidden');
+                document.querySelector('input[name="camera_index"]').required = true;
+                document.querySelector('input[name="stream_url"]').required = false;
+            } else {
+                opencvFields.classList.add('hidden');
+                rtspFields.classList.remove('hidden');
+                document.querySelector('input[name="camera_index"]').required = false;
+                document.querySelector('input[name="stream_url"]').required = true;
+            }
+        }
+
+        async function loadCameras() {
+            try {
+                const response = await fetch('/superadmin/api/cameras');
+                const data = await response.json();
+
+                if (response.ok && data.cameras) {
+                    displayCameras(data.cameras);
+                    updateStats(data.cameras);
+                } else {
+                    showError('Failed to load cameras: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                showError('Error loading cameras: ' + error.message);
+            }
+        }
+
+        function displayCameras(cameras) {
+            const grid = document.getElementById('cameras-grid');
+
+            if (cameras.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <i class="fas fa-video text-gray-300 text-6xl mb-4"></i>
+                        <p class="text-gray-500 text-lg">No cameras configured</p>
+                        <div class="mt-4 space-x-3">
+                            <button onclick="openAddCameraModal()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg">
+                                <i class="fas fa-plus mr-2"></i>Add Camera
+                            </button>
+                            <button onclick="scanNetwork()" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg">
+                                <i class="fas fa-network-wired mr-2"></i>Scan Network
+                            </button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Add Scan Button to header if cameras exist
+            const headerBtnContainer = document.querySelector('.flex.justify-between.items-center button')?.parentElement;
+            if (headerBtnContainer && !document.getElementById('scanBtn')) {
+                const scanBtn = document.createElement('button');
+                scanBtn.id = 'scanBtn';
+                scanBtn.className = 'bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg ml-2';
+                scanBtn.innerHTML = '<i class="fas fa-network-wired mr-2"></i>Scan Network';
+                scanBtn.onclick = scanNetwork;
+                headerBtnContainer.appendChild(scanBtn);
+            }
+
+            grid.innerHTML = cameras.map(camera => {
+                const purposeBadges = (camera.purpose || ['attendance']).map(p => {
+                    const color = p === 'enrollment' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800';
+                    return `<span class="px-2 py-0.5 rounded text-xs font-medium ${color} mr-1 capitalize">${p}</span>`;
+                }).join('');
+
+                return `
+                <div class="camera-card bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-800">${camera.name}</h3>
+                                <div class="mt-1">${purposeBadges}</div>
+                            </div>
+                            <span class="px-2 py-1 rounded-full text-xs font-medium ${camera.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }">
+                                ${camera.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </div>
+                        
+                        <div class="space-y-2 text-sm text-gray-600 mb-4">
+                            <div class="flex justify-between">
+                                <span>Type:</span>
+                                <span class="font-medium">${camera.source_type.toUpperCase()}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Source:</span>
+                                <span class="font-medium truncate max-w-[150px]">${camera.source}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Resolution:</span>
+                                <span class="font-medium">${camera.config?.resolution?.width || 640}x${camera.config?.resolution?.height || 480}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-2">
+                            ${camera.is_active ? `
+                                <button onclick="stopCamera('${camera._id}')" class="flex-1 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm transition duration-300">
+                                    <i class="fas fa-stop mr-1"></i>Stop
+                                </button>
+                                <button onclick="viewCamera('${camera._id}')" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm transition duration-300">
+                                    <i class="fas fa-eye mr-1"></i>View
+                                </button>
+                                <button onclick="toggleRecording('${camera._id}', this)" class="flex-1 bg-gray-700 hover:bg-gray-800 text-white px-3 py-2 rounded-lg text-sm transition duration-300" id="rec-btn-${camera._id}">
+                                    <i class="fas fa-circle mr-1 text-red-500"></i>Record
+                                </button>
+                            ` : `
+                                <button onclick="startCamera('${camera._id}')" class="flex-1 bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-sm transition duration-300">
+                                    <i class="fas fa-play mr-1"></i>Start
+                                </button>
+                                <button onclick='editCamera(${JSON.stringify(camera).replace(/'/g, "&#39;")})' class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-lg text-sm transition duration-300">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick='openZoneEditor(${JSON.stringify(camera).replace(/'/g, "&#39;")})' class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm transition duration-300">
+                                    <i class="fas fa-draw-polygon"></i>
+                                </button>
+                            `}
+                            <button onclick="openRecordings('${camera._id}', '${camera.name}')" class="bg-teal-500 hover:bg-teal-600 text-white px-3 py-2 rounded-lg text-sm transition duration-300" title="View Recordings">
+                                <i class="fas fa-film"></i>
+                            </button>
+                            <button onclick="deleteCamera('${camera._id}', '${camera.name}')" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm transition duration-300">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        // ... existing functions ...
+
+    </script>
+
+    <!-- Zone Editor Modal -->
+    <div id="zoneEditorModal"
+        class="fixed inset-0 bg-gray-900 bg-opacity-90 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl p-6 relative">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Edit Detection Zones</h3>
+                <button onclick="closeZoneEditor()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <div class="relative bg-black rounded-lg overflow-hidden" style="height: 500px;">
+                <!-- Camera Feed Background -->
+                <img id="zoneEditorImage" src="" class="absolute inset-0 w-full h-full object-contain"
+                    alt="Camera Feed">
+                <!-- Drawing Canvas -->
+                <canvas id="zoneCanvas" class="absolute inset-0 w-full h-full cursor-crosshair"></canvas>
+            </div>
+
+            <div class="mt-4 flex justify-between items-center">
+                <div class="text-sm text-gray-600">
+                    <p><i class="fas fa-info-circle mr-1"></i>Click to add points. Double-click to close polygon.</p>
+                </div>
+                <div class="space-x-3">
+                    <button onclick="clearZones()"
+                        class="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50">
+                        <i class="fas fa-trash mr-2"></i>Clear All
+                    </button>
+                    <button onclick="saveZones()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-save mr-2"></i>Save Zones
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentCameraId = null;
+        let currentZones = [];
+        let currentPolygon = [];
+        let canvas, ctx;
+        let imgElement;
+
+        function openZoneEditor(camera) {
+            currentCameraId = camera._id;
+            currentZones = camera.zones || [];
+            currentPolygon = [];
+
+            const modal = document.getElementById('zoneEditorModal');
+            modal.classList.remove('hidden');
+
+            imgElement = document.getElementById('zoneEditorImage');
+            // Use snapshot or feed
+            imgElement.src = `/superadmin/camera_feed/${camera._id}`;
+
+            canvas = document.getElementById('zoneCanvas');
+            ctx = canvas.getContext('2d');
+
+            // Resize canvas to match image display size
+            // Wait for image to load to get dimensions? 
+            // For now, we rely on the container size
+            setTimeout(() => {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+                drawZones();
+            }, 500);
+
+            canvas.onclick = handleCanvasClick;
+            canvas.ondblclick = handleCanvasDoubleClick;
+        }
+
+        function closeZoneEditor() {
+            document.getElementById('zoneEditorModal').classList.add('hidden');
+            imgElement.src = ''; // Stop stream
+        }
+
+        function handleCanvasClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / canvas.width;
+            const y = (e.clientY - rect.top) / canvas.height;
+
+            currentPolygon.push([x, y]);
+            drawZones();
+        }
+
+        function handleCanvasDoubleClick(e) {
+            if (currentPolygon.length > 2) {
+                currentZones.push([...currentPolygon]);
+                currentPolygon = [];
+                drawZones();
+            }
+        }
+
+        function drawZones() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw saved zones
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 2;
+            ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
+
+            currentZones.forEach(zone => {
+                ctx.beginPath();
+                zone.forEach((p, i) => {
+                    const x = p[0] * canvas.width;
+                    const y = p[1] * canvas.height;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.closePath();
+                ctx.stroke();
+                ctx.fill();
+            });
+
+            // Draw current polygon
+            if (currentPolygon.length > 0) {
+                ctx.strokeStyle = '#ffff00';
+                ctx.fillStyle = 'rgba(255, 255, 0, 0.2)';
+                ctx.beginPath();
+                currentPolygon.forEach((p, i) => {
+                    const x = p[0] * canvas.width;
+                    const y = p[1] * canvas.height;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+
+                    // Draw point
+                    ctx.fillRect(x - 2, y - 2, 4, 4);
+                });
+                ctx.stroke();
+                // Don't fill yet
+            }
+        }
+
+        function clearZones() {
+            currentZones = [];
+            currentPolygon = [];
+            drawZones();
+        }
+
+        async function saveZones() {
+            try {
+                const response = await fetch(`/superadmin/api/cameras/${currentCameraId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ zones: currentZones })
+                });
+
+                if (response.ok) {
+                    showSuccess("Zones saved successfully");
+                    closeZoneEditor();
+                    loadCameras(); // Refresh to update local data
+                } else {
+                    showError("Failed to save zones");
+                }
+            } catch (error) {
+                showError("Error: " + error.message);
+            }
+        }
+
+
+        function viewCamera(cameraId) {
+            const width = 1024;
+            const height = 768;
+            const left = (screen.width - width) / 2;
+            const top = (screen.height - height) / 2;
+            window.open(`/superadmin/camera_feed/${cameraId}`, `Camera_${cameraId}`, `width=${width},height=${height},top=${top},left=${left}`);
+        }
+
+        async function scanNetwork() {
+            const btn = document.getElementById('scanBtn') || document.querySelector('button[onclick="scanNetwork()"]');
+            const originalText = btn ? btn.innerHTML : 'Scan Network';
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Scanning...';
+                btn.disabled = true;
+            }
+
+            try {
+                const response = await fetch('/superadmin/api/cameras/scan', { method: 'POST' });
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (data.cameras && data.cameras.length > 0) {
+                        alert(`Found ${data.cameras.length} cameras:\n` + data.cameras.map(c => `${c.name} (${c.ip})`).join('\n'));
+                    } else {
+                        showSuccess(data.message || "Scan complete. No new cameras found.");
+                    }
+                } else {
+                    showError(data.error || "Scan failed");
+                }
+            } catch (error) {
+                showError("Scan error: " + error.message);
+            } finally {
+                if (btn) {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        function updateStats(cameras) {
+            const total = cameras.length;
+            const active = cameras.filter(c => c.is_active).length;
+            const inactive = total - active;
+
+            document.getElementById('total-cameras').textContent = total;
+            document.getElementById('active-cameras').textContent = active;
+            document.getElementById('inactive-cameras').textContent = inactive;
+        }
+
+        async function startCamera(cameraId) {
+            try {
+                const response = await fetch(`/superadmin/api/cameras/${cameraId}/start`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSuccess(data.message);
+                    loadCameras();
+                    loadCameraLogs();
+                } else {
+                    showError(data.error || 'Failed to start camera');
+                }
+            } catch (error) {
+                showError('Error starting camera: ' + error.message);
+            }
+        }
+
+        async function stopCamera(cameraId) {
+            try {
+                const response = await fetch(`/superadmin/api/cameras/${cameraId}/stop`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSuccess(data.message);
+                    loadCameras();
+                    loadCameraLogs();
+                } else {
+                    showError(data.error || 'Failed to stop camera');
+                }
+            } catch (error) {
+                showError('Error stopping camera: ' + error.message);
+            }
+        }
+
+        async function deleteCamera(cameraId, cameraName) {
+            if (!confirm(`Are you sure you want to delete camera "${cameraName}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/superadmin/api/cameras/${cameraId}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSuccess(data.message);
+                    loadCameras();
+                    loadCameraLogs();
+                } else {
+                    showError(data.error || 'Failed to delete camera');
+                }
+            } catch (error) {
+                showError('Error deleting camera: ' + error.message);
+            }
+        }
+
+        let cameraActivityChart = null;
+
+        async function loadCameraLogs() {
+            try {
+                const response = await fetch('/superadmin/api/cameras/logs');
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Update Chart
+                    if (data.chart_data) {
+                        initCameraActivityChart(data.chart_data);
+                    }
+
+                    // Update Logs Table
+                    if (data.logs) {
+                        renderCameraLogs(data.logs);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading camera logs:', error);
+            }
+        }
+
+        function initCameraActivityChart(chartData) {
+            const ctx = document.getElementById('cameraActivityChart');
+            if (!ctx) return;
+
+            // Destroy existing chart
+            if (cameraActivityChart) {
+                cameraActivityChart.destroy();
+            }
+
+            cameraActivityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: 'Camera Events',
+                        data: chartData.values,
+                        borderColor: 'rgb(147, 51, 234)',
+                        backgroundColor: 'rgba(147, 51, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderCameraLogs(logs) {
+            const tbody = document.getElementById('camera-logs-body');
+            if (!tbody) return;
+
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-3 text-center text-gray-500">No logs available</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = logs.slice(0, 10).map(log => {
+                // Format time with both date and time
+                const timestamp = new Date(log.timestamp);
+                const time = timestamp.toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+
+                const actionColors = {
+                    'start_camera': 'text-green-600',
+                    'stop_camera': 'text-red-600',
+                    'create_camera': 'text-blue-600',
+                    'delete_camera': 'text-red-700',
+                    'update_camera': 'text-yellow-600',
+                    'intrusion_alert': 'text-orange-600'
+                };
+                const color = actionColors[log.action] || 'text-gray-600';
+
+                return `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="px-4 py-2 text-gray-600">${time}</td>
+                        <td class="px-4 py-2 ${color} font-medium">${log.action || 'Unknown'}</td>
+                        <td class="px-4 py-2">
+                            <span class="px-2 py-1 text-xs rounded ${log.action.includes('alert') || log.action.includes('delete') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
+                                ${log.camera_id || 'System'}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function viewCamera(cameraId) {
+            window.open(`/superadmin/camera_feed/${cameraId}`, '_blank', 'width=800,height=600');
+        }
+
+        async function handleCameraSubmit(event) {
+            event.preventDefault();
+
+            const formData = new FormData(event.target);
+            const cameraId = formData.get('camera_id');
+            const isEdit = !!cameraId;
+
+            const purpose = [];
+            document.querySelectorAll('input[name="purpose"]:checked').forEach(cb => purpose.push(cb.value));
+
+            const data = {
+                name: formData.get('name'),
+                source_type: formData.get('source_type'),
+                purpose: purpose,
+                camera_index: formData.get('camera_index') ? parseInt(formData.get('camera_index')) : null,
+                stream_url: formData.get('stream_url'),
+                resolution_width: parseInt(formData.get('resolution_width')),
+                resolution_height: parseInt(formData.get('resolution_height')),
+                fps: parseInt(formData.get('fps'))
+            };
+
+            const url = isEdit ? `/superadmin/api/cameras/${cameraId}` : '/superadmin/api/cameras';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showSuccess(result.message);
+                    closeAddCameraModal();
+                    loadCameras();
+                    loadCameraLogs();
+                } else {
+                    showError(result.error || 'Failed to save camera');
+                }
+            } catch (error) {
+                showError('Error saving camera: ' + error.message);
+            }
+        }
+
+        function openAddCameraModal() {
+            document.getElementById('modalTitle').textContent = 'Add New Camera';
+            document.getElementById('edit_camera_id').value = '';
+            document.getElementById('addCameraForm').reset();
+            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-plus mr-2"></i>Add Camera';
+            // Set default purpose checkboxes
+            document.querySelector('input[name="purpose"][value="attendance"]').checked = true;
+            document.querySelector('input[name="purpose"][value="enrollment"]').checked = false;
+            document.getElementById('addCameraModal').classList.remove('hidden');
+            toggleSourceFields();
+        }
+
+        function editCamera(camera) {
+            document.getElementById('modalTitle').textContent = 'Edit Camera';
+            document.getElementById('edit_camera_id').value = camera._id;
+            document.getElementById('camera_name').value = camera.name;
+            document.getElementById('source_type').value = camera.source_type;
+
+            // Set purpose checkboxes
+            const purposes = camera.purpose || ['attendance'];
+            document.querySelectorAll('input[name="purpose"]').forEach(cb => {
+                cb.checked = purposes.includes(cb.value);
+            });
+
+            if (camera.source_type === 'opencv') {
+                document.getElementById('camera_index').value = camera.source;
+            } else {
+                document.getElementById('stream_url').value = camera.source;
+            }
+
+            if (camera.config && camera.config.resolution) {
+                document.getElementById('res_width').value = camera.config.resolution.width;
+                document.getElementById('res_height').value = camera.config.resolution.height;
+            }
+
+            if (camera.config && camera.config.fps) {
+                document.getElementById('fps').value = camera.config.fps;
+            }
+
+            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save mr-2"></i>Update Camera';
+            document.getElementById('addCameraModal').classList.remove('hidden');
+            toggleSourceFields();
+        }
+
+        function closeAddCameraModal() {
+            document.getElementById('addCameraModal').classList.add('hidden');
+            document.getElementById('addCameraForm').reset();
+        }
+
+        function refreshCameras() {
+            loadCameras();
+            loadCameraLogs();
+        }
+
+        function showSuccess(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            toast.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function showError(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            toast.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i>${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000);
+        }
+    </script>
+    <!-- Recordings Modal -->
+    <div id="recordingsModal"
+        class="fixed inset-0 bg-gray-900 bg-opacity-90 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl p-6 relative h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800" id="recordingsModalTitle">Camera Recordings</h3>
+                <button onclick="closeRecordingsModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <div class="flex flex-1 overflow-hidden gap-4">
+                <!-- Video Player -->
+                <div class="w-2/3 bg-black rounded-lg flex items-center justify-center relative group">
+                    <video id="videoPlayer" class="w-full h-full object-contain" controls>
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+
+                <!-- Recordings List -->
+                <div class="w-1/3 bg-gray-50 rounded-lg p-4 overflow-y-auto">
+                    <h4 class="font-semibold text-gray-700 mb-3">Saved Recordings</h4>
+                    <div id="recordingsList" class="space-y-2">
+                        <!-- List items injected here -->
+                        <div class="text-center text-gray-500 py-4">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ... existing scripts ...
+
+        async function toggleRecording(cameraId, btn) {
+            const isRecording = btn.classList.contains('recording-active');
+            const url = `/superadmin/api/cameras/${cameraId}/record/${isRecording ? 'stop' : 'start'}`;
+
+            try {
+                const response = await fetch(url, { method: 'POST' });
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (isRecording) {
+                        btn.classList.remove('recording-active', 'bg-red-600', 'hover:bg-red-700');
+                        btn.classList.add('bg-gray-700', 'hover:bg-gray-800');
+                        btn.innerHTML = '<i class="fas fa-circle mr-1 text-red-500"></i>Record';
+                        showSuccess("Recording stopped");
+                    } else {
+                        btn.classList.add('recording-active', 'bg-red-600', 'hover:bg-red-700');
+                        btn.classList.remove('bg-gray-700', 'hover:bg-gray-800');
+                        btn.innerHTML = '<i class="fas fa-stop mr-1"></i>Stop Rec';
+                        showSuccess("Recording started");
+                    }
+                } else {
+                    showError(data.error || "Action failed");
+                }
+            } catch (error) {
+                showError("Error: " + error.message);
+            }
+        }
+
+        let currentPlaybackCameraId = null;
+
+        async function openRecordings(cameraId, cameraName) {
+            currentPlaybackCameraId = cameraId;
+            document.getElementById('recordingsModalTitle').textContent = `Recordings - ${cameraName}`;
+            document.getElementById('recordingsModal').classList.remove('hidden');
+            loadRecordings(cameraId);
+        }
+
+        function closeRecordingsModal() {
+            document.getElementById('recordingsModal').classList.add('hidden');
+            const video = document.getElementById('videoPlayer');
+            video.pause();
+            video.src = "";
+        }
+
+        async function loadRecordings(cameraId) {
+            const listContainer = document.getElementById('recordingsList');
+            listContainer.innerHTML = '<div class="text-center text-gray-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Loading...</div>';
+
+            try {
+                const response = await fetch(`/superadmin/api/cameras/${cameraId}/recordings`);
+                const data = await response.json();
+
+                if (response.ok && data.recordings) {
+                    if (data.recordings.length === 0) {
+                        listContainer.innerHTML = '<div class="text-center text-gray-500 py-4">No recordings found</div>';
+                        return;
+                    }
+
+                    listContainer.innerHTML = data.recordings.map(rec => `
+                        <div class="bg-white p-3 rounded shadow-sm hover:shadow-md transition cursor-pointer border border-gray-200" onclick="playVideo('${rec.url}')">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="font-medium text-gray-800">${new Date(rec.start_time).toLocaleString()}</div>
+                                    <div class="text-xs text-gray-500 mt-1">Duration: ${rec.duration.toFixed(1)}s</div>
+                                </div>
+                                <button onclick="deleteRecording('${rec._id}', event)" class="text-red-400 hover:text-red-600 p-1">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    listContainer.innerHTML = `<div class="text-center text-red-500 py-4">Failed to load: ${data.error}</div>`;
+                }
+            } catch (error) {
+                listContainer.innerHTML = `<div class="text-center text-red-500 py-4">Error: ${error.message}</div>`;
+            }
+        }
+
+        function playVideo(url) {
+            const video = document.getElementById('videoPlayer');
+            video.src = url;
+            video.play();
+        }
+
+        async function deleteRecording(recordingId, event) {
+            event.stopPropagation(); // Prevent playing video
+            if (!confirm("Delete this recording?")) return;
+
+            try {
+                const response = await fetch(`/superadmin/api/recordings/${recordingId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    showSuccess("Recording deleted");
+                    loadRecordings(currentPlaybackCameraId);
+                } else {
+                    showError("Failed to delete");
+                }
+            } catch (error) {
+                showError("Error: " + error.message);
+            }
+        }
+    </script>
+</body>
+
+</html>

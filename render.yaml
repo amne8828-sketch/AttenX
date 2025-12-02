@@ -1,0 +1,29 @@
+services:
+  # Web Service using Docker
+  - type: web
+    name: attendx-webapp
+    runtime: docker
+    region: oregon
+    plan: free
+    branch: main
+    dockerfilePath: ./Dockerfile
+    rootDirectory: ./attendX
+    envVars:
+      - key: FLASK_SECRET
+        generateValue: true
+      - key: CREATE_ADMIN_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false  # Set this manually in Render dashboard
+      - key: FACE_ENGINE_URL
+        value: "https://[your-hf-space-name].hf.space"  # Update with actual HF Space URL
+      - key: PORT
+        value: "10000"
+      - key: ADMIN_EMAIL
+        value: admin@admin.com
+      - key: ADMIN_PASSWORD
+        value: password123
+      # Environment variables for configuration
+      - key: PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION
+        value: python
+    healthCheckPath: /

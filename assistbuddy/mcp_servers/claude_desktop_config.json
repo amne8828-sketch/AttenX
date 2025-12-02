@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "assistbuddy-camera": {
+      "command": "python",
+      "args": ["C:/Users/HP/Desktop/New folder/project/assistbuddy/mcp_servers/camera_server.py"],
+      "description": "Webcam snapshot capture for visual context"
+    },
+    "assistbuddy-excel": {
+      "command": "python",
+      "args": ["C:/Users/HP/Desktop/New folder/project/assistbuddy/mcp_servers/excel_server.py"],
+      "description": "Secure Excel/CSV manipulation with pandas"
+    },
+    "assistbuddy-screenshot": {
+      "command": "python",
+      "args": ["C:/Users/HP/Desktop/New folder/project/assistbuddy/mcp_servers/screenshot_server.py"],
+      "description": "Screen capture for UI analysis"
+    },
+    "assistbuddy-bash": {
+      "command": "python",
+      "args": ["C:/Users/HP/Desktop/New folder/project/assistbuddy/mcp_servers/bash_server.py"],
+      "description": "Safe shell command execution"
+    }
+  }
+}

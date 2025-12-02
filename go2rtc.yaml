@@ -1,0 +1,29 @@
+# Go2RTC Configuration for IP Camera Streaming
+
+streams:
+  # Example camera configurations
+  # Add your cameras here
+  
+  # Example: Local webcam
+  local_webcam:
+    - rtsp://localhost:8554/webcam
+  
+  # Example: IP Camera (RTSP)
+  # office_camera:
+  #   - rtsp://username:password@192.168.1.100:554/stream1
+  
+  # Example: HTTP Stream
+  # http_camera:
+  #   - http://192.168.1.101/video.mjpg
+
+# API Configuration
+api:
+  listen: ":1984"
+
+# WebRTC Configuration
+webrtc:
+  listen: ":8555"
+
+# RTSP Server Configuration
+rtsp:
+  listen: ":8554"

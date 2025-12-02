@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: attendx_mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - attendx_network
+
+  # Flask Web App
+  webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: attendx_webapp
+    restart: always
+    ports:
+      - "10000:10000"
+    environment:
+      - FLASK_SECRET=dev-secret-key-change-in-production
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/?authSource=admin&serverSelectionTimeoutMS=10000&connectTimeoutMS=10000&socketTimeoutMS=10000
+      - FACE_ENGINE_URL=http://localhost:7860
+      - PORT=10000
+      - ADMIN_EMAIL=admin@admin.com
+      - ADMIN_PASSWORD=password123
+      - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+    depends_on:
+      - mongodb
+    volumes:
+      - ./static/recordings:/app/static/recordings
+      - ./static/screenshots:/app/static/screenshots
+      - ./static/uploads:/app/static/uploads
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - attendx_network
+
+  # Optional: Go2RTC for IP Camera streaming
+  go2rtc:
+    image: alexxit/go2rtc:latest
+    container_name: attendx_go2rtc
+    restart: unless-stopped
+    ports:
+      - "1984:1984"
+      - "8554:8554"
+    volumes:
+      - ./go2rtc.yaml:/config/go2rtc.yaml
+    networks:
+      - attendx_network
+
+networks:
+  attendx_network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  mongodb_config:

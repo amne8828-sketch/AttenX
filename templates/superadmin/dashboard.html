@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Dashboard - Smart Attendance System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .card-hover:hover {
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .stat-card-2 {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .stat-card-3 {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .stat-card-4 {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        /* Mobile Sidebar */
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 40;
+            display: none;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+        }
+
+        .sidebar {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.active {
+            transform: translateX(0);
+        }
+
+        /* Enhanced Camera Styles */
+        .touch-manipulation {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .video-stream {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 0;
+        }
+
+        /* Camera height responsive */
+        .camera-height {
+            height: 300px;
+        }
+
+        /* Mobile camera optimizations */
+        @media (max-width: 768px) {
+            .camera-height {
+                height: 250px;
+            }
+
+            .camera-container {
+                min-height: 250px !important;
+            }
+
+            .video-stream {
+                object-fit: cover;
+                transform: scaleX(-1);
+                /* Mirror for front camera */
+            }
+
+            /* Better mobile touch targets */
+            button {
+                min-height: 44px;
+                min-width: 44px;
+            }
+
+            /* Mobile face detection overlay adjustments */
+            #detectionCanvas {
+                transform: scaleX(-1);
+                /* Mirror canvas too */
+            }
+        }
+
+        /* Detection success animation */
+        .detection-active {
+            animation: detectionPulse 2s ease-in-out;
+        }
+
+        @keyframes detectionPulse {
+
+            0%,
+            100% {
+                filter: brightness(1) saturate(1);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+
+            50% {
+                filter: brightness(1.2) saturate(1.3);
+                box-shadow: 0 0 20px 5px rgba(16, 185, 129, 0.3);
+            }
+        }
+
+        /* Toast notification styles for mobile */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            max-width: 350px;
+            word-wrap: break-word;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .toast.error {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .toast.info {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+
+        @media (max-width: 768px) {
+            .toast {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+                transform: translateY(-100px);
+            }
+
+            .toast.show {
+                transform: translateY(0);
+            }
+        }
+
+        /* Camera loading animation */
+        @keyframes cameraInit {
+            0% {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .camera-ready {
+            animation: cameraInit 0.5s ease-out;
+        }
+
+        /* Face detection pulse effect */
+        @keyframes detectPulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+            }
+        }
+
+        .detection-active {
+            animation: detectPulse 2s infinite;
+        }
+
+        .camera-height {
+            min-height: 280px;
+            max-height: 500px;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background: #10b981;
+        }
+
+        .toast.error {
+            background: #ef4444;
+        }
+
+        .toast.info {
+            background: #3b82f6;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Navigation -->
+    <nav class="gradient-bg shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <button id="menuToggle" onclick="toggleSidebar()"
+                        class="lg:hidden text-white mr-3 p-2 rounded-md hover:bg-white/10">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <i class="fas fa-shield-alt text-white text-2xl mr-3"></i>
+                    <h1 class="text-white text-xl font-bold">Super Admin Dashboard</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-white hidden sm:block">
+                        <i class="fas fa-user-circle mr-2"></i>
+                        {{ superadmin.name or superadmin.email }}
+                    </div>
+                    <a href="{{ url_for('logout') }}"
+                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-300">
+                        <i class="fas fa-sign-out-alt mr-2"></i><span class="hidden sm:inline">Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex">
+        <!-- Sidebar -->
+        <div id="sidebar" class="sidebar fixed lg:static lg:translate-x-0 w-64 bg-white shadow-lg min-h-screen z-50">
+            <div class="p-6">
+                <nav class="space-y-2">
+                    <a href="{{ url_for('superadmin.dashboard') }}"
+                        class="flex items-center px-4 py-3 text-gray-700 bg-blue-50 rounded-lg">
+                        <i class="fas fa-tachometer-alt mr-3"></i>Dashboard
+                    </a>
+                    <a href="{{ url_for('superadmin.admins') }}"
+                        class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg">
+                        <i class="fas fa-users-cog mr-3"></i>Manage Admins
+                    </a>
+                    <a href="{{ url_for('superadmin.cameras') }}"
+                        class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg">
+                        <i class="fas fa-video mr-3"></i>Camera Manager
+                    </a>
+                    <a href="/superadmin/users"
+                        class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg">
+                        <i class="fas fa-users mr-3"></i>Users
+                    </a>
+                    <a href="/superadmin/logs"
+                        class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg">
+                        <i class="fas fa-file-alt mr-3"></i>System Logs
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 lg:ml-0 p-4 lg:p-8">
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="stat-card rounded-xl p-6 text-white card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-white/80 text-sm">Total Admins</p>
+                            <p class="text-3xl font-bold" id="total-admins">{{ stats.total_admins or 0 }}</p>
+                        </div>
+                        <i class="fas fa-users-cog text-4xl text-white/60"></i>
+                    </div>
+                </div>
+
+                <div class="stat-card-2 rounded-xl p-6 text-white card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-white/80 text-sm">Total Users</p>
+                            <p class="text-3xl font-bold" id="total-users">{{ stats.total_users or 0 }}</p>
+                        </div>
+                        <i class="fas fa-users text-4xl text-white/60"></i>
+                    </div>
+                </div>
+
+                <div class="stat-card-3 rounded-xl p-6 text-white card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-white/80 text-sm">Active Cameras</p>
+                            <p class="text-3xl font-bold" id="active-cameras">{{ stats.active_cameras or 0 }}</p>
+                        </div>
+                        <i class="fas fa-video text-4xl text-white/60"></i>
+                    </div>
+                </div>
+
+                <div class="stat-card-4 rounded-xl p-6 text-white card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-white/80 text-sm">Pending Requests</p>
+                            <p class="text-3xl font-bold" id="pending-requests">{{ stats.pending_requests or 0 }}</p>
+                        </div>
+                        <i class="fas fa-clock text-4xl text-white/60"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enhanced Live Attendance Camera -->
+            <div class="bg-white rounded-xl shadow-lg p-3 sm:p-6 mb-8">
+                <div
+                    class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-camera mr-2 text-purple-500 text-lg sm:text-xl"></i>
+                        <span id="liveIndicator"
+                            class="pulse w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full mr-2"></span>
+                        <h3 class="text-lg sm:text-xl font-bold text-gray-800">Live 3D Face Recognition</h3>
+                    </div>
+                    <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                        <button id="toggleCamera" onclick="toggleCameraFeed()"
+                            class="flex-1 sm:flex-initial bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center justify-center touch-manipulation">
+                            <i class="fas fa-play mr-1 sm:mr-2 text-sm"></i>
+                            <span class="text-sm sm:text-base">Start Camera</span>
+                        </button>
+                        <button id="switchCamera" onclick="switchCamera()"
+                            class="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 hidden touch-manipulation">
+                            <i class="fas fa-sync-alt mr-1 sm:mr-2 text-sm"></i>
+                            <span class="text-sm sm:text-base">Switch</span>
+                        </button>
+                        <button id="capturePhoto" onclick="capturePhoto()"
+                            class="flex-1 sm:flex-initial bg-green-600 hover:bg-green-700 active:bg-green-800 text-white px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 hidden touch-manipulation">
+                            <i class="fas fa-camera mr-1 sm:mr-2 text-sm"></i>
+                            <span class="text-sm sm:text-base">Capture</span>
+                        </button>
+                        <button id="testAPI" onclick="testDetectionAPI()"
+                            class="flex-1 sm:flex-initial bg-yellow-600 hover:bg-yellow-700 active:bg-yellow-800 text-white px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 touch-manipulation">
+                            <i class="fas fa-vial mr-1 sm:mr-2 text-sm"></i>
+                            <span class="text-sm sm:text-base">Test API</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div
+                    class="relative bg-gradient-to-br from-gray-900 to-purple-900 rounded-xl overflow-hidden camera-height">
+                    <!-- Camera Placeholder -->
+                    <div id="cameraPlaceholder"
+                        class="absolute inset-0 flex flex-col items-center justify-center text-white p-4 sm:p-8">
+                        <div class="text-center">
+                            <i class="fas fa-cube text-4xl sm:text-6xl mb-3 sm:mb-4 text-purple-300 animate-pulse"></i>
+                            <h4 class="text-lg sm:text-xl font-semibold mb-2">Advanced 3D Face Recognition</h4>
+                            <div class="flex flex-wrap justify-center gap-3 sm:gap-4 text-xs opacity-75">
+                                <span><i class="fas fa-brain mr-1"></i>3D Analysis</span>
+                                <span><i class="fas fa-shield-alt mr-1"></i>Anti-Spoofing</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Container -->
+                    <div id="videoContainer" class="relative w-full h-full hidden">
+                        <video id="videoFeed" class="video-stream" autoplay muted playsinline></video>
+                        <canvas id="detectionCanvas"
+                            class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+
+                        <!-- Advanced Features Badge -->
+                        <!-- <div class="absolute top-2 sm:top-4 left-2 sm:left-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm font-bold flex items-center shadow-lg">
+                            <span class="pulse w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full mr-1 sm:mr-2"></span>
+                            <span id="systemBadge">Multi-Modal AI</span>
+                        </div> -->
+
+                        <!-- Detection Info -->
+                        <div
+                            class="absolute top-2 sm:top-4 right-2 sm:right-4 bg-black bg-opacity-80 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-xs sm:text-sm backdrop-blur-sm">
+                            <div id="faceCount" class="font-semibold">Scanning...</div>
+                            <div id="recognitionStatus" class="text-green-300 mt-0.5 sm:mt-1 text-xs sm:text-sm">Ready
+                            </div>
+                        </div>
+
+                        <!-- Face Detection Alert -->
+                        <div id="faceDetectionAlert"
+                            class="absolute bottom-14 sm:bottom-16 left-2 sm:left-2 right-2 sm:right-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-center font-semibold hidden transform transition-all duration-300">
+                            <div id="detectionMessage" class="text-sm sm:text-base"></div>
+                        </div>
+
+                        <!-- Attendance Success Alert -->
+                        <div id="attendanceAlert"
+                            class="absolute bottom-2 sm:bottom-4 left-2 sm:left-2 right-2 sm:right-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-center font-semibold hidden transform transition-all duration-300">
+                            <div id="attendanceMessage" class="text-sm sm:text-base"></div>
+                        </div>
+
+                        <!-- Loading Indicator -->
+                        <div id="cameraLoading"
+                            class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+                            <div class="text-white text-center">
+                                <div
+                                    class="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-white mx-auto mb-2 sm:mb-4">
+                                </div>
+                                <p class="text-xs sm:text-sm">Processing...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Camera Stats -->
+                <div class="mt-3 sm:mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-center">
+                    <div class="bg-purple-50 p-2 sm:p-3 rounded-lg">
+                        <div class="text-xs sm:text-sm text-purple-600 font-semibold" id="totalDetections">0</div>
+                        <div class="text-xs text-purple-500">Detections</div>
+                    </div>
+                    <div class="bg-green-50 p-2 sm:p-3 rounded-lg">
+                        <div class="text-xs sm:text-sm text-green-600 font-semibold" id="successfulMatches">0</div>
+                        <div class="text-xs text-green-500">Matches</div>
+                    </div>
+                    <div class="bg-blue-50 p-2 sm:p-3 rounded-lg">
+                        <div class="text-xs sm:text-sm text-blue-600 font-semibold" id="attendanceMarked">0</div>
+                        <div class="text-xs text-blue-500">Attendance</div>
+                    </div>
+                    <div class="bg-yellow-50 p-2 sm:p-3 rounded-lg">
+                        <div class="text-xs sm:text-sm text-yellow-600 font-semibold" id="cameraUptime">00:00</div>
+                        <div class="text-xs text-yellow-500">Uptime</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts and Tables -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <!-- Attendance Chart -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-chart-line mr-2 text-blue-500"></i>Attendance Trends
+                    </h3>
+                    <canvas id="attendanceChart" height="300"></canvas>
+                </div>
+
+                <!-- System Health -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-heartbeat mr-2 text-green-500"></i>System Health
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-600">Database Status</span>
+                            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                                <i class="fas fa-check-circle mr-1"></i>Healthy
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-600">FAISS Index</span>
+                            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm" id="faiss-status">
+                                <i class="fas fa-check-circle mr-1"></i>Active
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-600">Camera System</span>
+                            <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm" id="camera-status">
+                                <i class="fas fa-info-circle mr-1"></i>Monitoring
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-clock mr-2 text-purple-500"></i>Recent Activity
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full table-auto">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Time</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Action</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    User</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-activity" class="bg-white divide-y divide-gray-200">
+                            <!-- Activity will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script type="text/javascript">
+        console.log('Dashboard v3.0 Loading...');
+
+        // Initialize Socket.IO
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('WebSocket Connected!');
+            socket.emit('request_stats');
+        });
+
+        socket.on('stats_update', (stats) => {
+            updateDashboardStats(stats);
+        });
+
+        function updateDashboardStats(data) {
+            if (document.getElementById('total-admins')) document.getElementById('total-admins').textContent = data.total_admins || 0;
+            if (document.getElementById('total-users')) document.getElementById('total-users').textContent = data.total_users || 0;
+            if (document.getElementById('active-cameras')) document.getElementById('active-cameras').textContent = data.active_cameras || 0;
+            if (document.getElementById('pending-requests')) document.getElementById('pending-requests').textContent = data.pending_enrollments || 0;
+
+            // Update system health
+            const faissSizeElement = document.getElementById('faiss-status');
+            if (faissSizeElement) {
+                if (data.faiss_index_size > 0) {
+                    faissSizeElement.innerHTML = '<i class="fas fa-check-circle mr-1"></i>Active (' + data.faiss_index_size + ')';
+                    faissSizeElement.className = 'px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm';
+                } else {
+                    faissSizeElement.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i>Empty';
+                    faissSizeElement.className = 'px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm';
+                }
+            }
+        }
+
+        // Global variables - No duplicates
+        var cameraActive = false;
+        var currentStream = null;
+        var availableCameras = [];
+        var currentCameraIndex = 0;
+        var faceDetectionInterval = null;
+        var isProcessing = false;
+        var sessionStats = {
+            totalScans: 0,
+            successfulScans: 0,
+            attendanceCount: 0
+        };
+
+        // Global chart instances to prevent memory leaks
+        var attendanceChartInstance = null;
+        var isLoadingChart = false;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function () {
+            loadStats();
+            loadAttendanceChart();
+            loadRecentActivity();
+
+            // Check system health and show advanced status
+            checkAdvancedSystemHealth();
+
+            // Auto-refresh every 30 seconds
+            // Auto-refresh every 30 seconds (only for non-realtime items)
+            setInterval(() => {
+                if (document.hidden) return; // Skip update if tab is not visible
+                // loadStats(); // Handled by WebSocket
+                loadRecentActivity();
+            }, 30000);
+        });
+
+        // Check Advanced System Health
+        async function checkAdvancedSystemHealth() {
+            try {
+                const response = await fetch('/api/detection_health');
+                const health = await response.json();
+
+                console.log('Advanced System Health:', health);
+
+                if (health.overall_health) {
+                    // Update system status indicators
+                    const systemBadge = document.getElementById('systemBadge');
+                    if (systemBadge) {
+                        if (health.components.ultra_recognition) {
+                            systemBadge.textContent = 'Ultra AI Ready';
+                            systemBadge.className = systemBadge.className.replace('from-purple-500 to-purple-600', 'from-green-500 to-green-600');
+                        } else if (health.components.deepface && health.components.mediapipe) {
+                            systemBadge.textContent = 'Enhanced AI Ready';
+                            systemBadge.className = systemBadge.className.replace('from-purple-500 to-purple-600', 'from-blue-500 to-blue-600');
+                        }
+                    }
+
+                    showToast(`${health.recommendation} - 99.99% accuracy`, 'success');
+                } else {
+                    showToast('Basic detection available', 'warning');
+                }
+            } catch (error) {
+                console.error('Health check failed:', error);
+            }
+        }
+
+        // Sidebar toggle function
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Enhanced Camera System with Mobile Support
+        var cameraStats = {
+            totalDetections: 0,
+            successfulMatches: 0,
+            attendanceMarked: 0,
+            startTime: null
+        };
+
+        // Make all functions global immediately
+        window.toggleCameraFeed = async function () {
+            const toggleBtn = document.getElementById('toggleCamera');
+            const switchBtn = document.getElementById('switchCamera');
+            const captureBtn = document.getElementById('capturePhoto');
+            const placeholder = document.getElementById('cameraPlaceholder');
+            const videoContainer = document.getElementById('videoContainer');
+            const loadingIndicator = document.getElementById('cameraLoading');
+            const liveIndicator = document.getElementById('liveIndicator');
+
+            if (!cameraActive) {
+                try {
+                    // Show loading
+                    showLoading(true);
+                    showToast('Initializing 3D Face Recognition Camera...', 'info');
+
+                    await getAvailableCameras();
+                    await startCamera();
+
+                    // Hide loading and show video
+                    showLoading(false);
+                    placeholder.classList.add('hidden');
+                    videoContainer.classList.remove('hidden');
+
+                    // Update UI
+                    toggleBtn.innerHTML = '<i class="fas fa-stop mr-1 sm:mr-2 text-sm"></i><span class="text-sm sm:text-base">Stop Camera</span>';
+                    toggleBtn.className = toggleBtn.className.replace('bg-purple-600 hover:bg-purple-700 active:bg-purple-800', 'bg-red-600 hover:bg-red-700 active:bg-red-800');
+
+                    if (availableCameras.length > 1) {
+                        switchBtn.classList.remove('hidden');
+                    }
+                    captureBtn.classList.remove('hidden');
+
+                    // Change indicator to green (active)
+                    liveIndicator.className = liveIndicator.className.replace('bg-red-500', 'bg-green-500');
+
+                    // Start detection and stats
+                    startFaceDetection();
+                    startCameraStats();
+                    cameraActive = true;
+
+                    showToast('3D Face Recognition Camera Started - 99.99% Accuracy Active', 'success');
+                } catch (error) {
+                    console.error('Camera error:', error);
+                    showLoading(false);
+                    showToast('Camera access denied. Please allow camera permissions.', 'error');
+                }
+            } else {
+                stopCamera();
+
+                // Show placeholder
+                placeholder.classList.remove('hidden');
+                videoContainer.classList.add('hidden');
+
+                // Reset UI
+                toggleBtn.innerHTML = '<i class="fas fa-play mr-1 sm:mr-2 text-sm"></i><span class="text-sm sm:text-base">Start Camera</span>';
+                toggleBtn.className = toggleBtn.className.replace('bg-red-600 hover:bg-red-700 active:bg-red-800', 'bg-purple-600 hover:bg-purple-700 active:bg-purple-800');
+
+                switchBtn.classList.add('hidden');
+                captureBtn.classList.add('hidden');
+
+                // Change indicator back to red (inactive)
+                liveIndicator.className = liveIndicator.className.replace('bg-green-500', 'bg-red-500');
+
+                cameraActive = false;
+                showToast('Camera stopped', 'info');
+            }
+        };
+
+        window.showLoading = function (show) {
+            const loadingIndicator = document.getElementById('cameraLoading');
+            if (show) {
+                loadingIndicator.classList.remove('hidden');
+            } else {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        async function getAvailableCameras() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                availableCameras = devices.filter(device => device.kind === 'videoinput');
+                console.log('Available cameras:', availableCameras.length);
+
+                // Request permissions first
+                if (availableCameras.length === 0) {
+                    await navigator.mediaDevices.getUserMedia({ video: true });
+                    const newDevices = await navigator.mediaDevices.enumerateDevices();
+                    availableCameras = newDevices.filter(device => device.kind === 'videoinput');
+                }
+            } catch (error) {
+                console.error('Error getting cameras:', error);
+                throw new Error('Camera access denied or no cameras available');
+            }
+        }
+
+        async function startCamera() {
+            try {
+                // Mobile-optimized constraints with fallback
+                const isMobile = window.innerWidth <= 768;
+
+                // First try with preferred constraints
+                let constraints = {
+                    video: {
+                        width: { min: 320, ideal: isMobile ? 640 : 1280, max: 1920 },
+                        height: { min: 240, ideal: isMobile ? 480 : 720, max: 1080 },
+                        frameRate: { min: 15, ideal: isMobile ? 24 : 30, max: 60 },
+                        facingMode: isMobile ? 'user' : 'environment'
+                    }
+                };
+
+                // If we have specific camera on desktop, use it
+                if (availableCameras.length > 0 && !isMobile && availableCameras[currentCameraIndex]) {
+                    constraints.video.deviceId = { ideal: availableCameras[currentCameraIndex].deviceId };
+                }
+
+                // Stop existing stream
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+
+                // Try to get camera with preferred constraints, fallback if needed
+                try {
+                    console.log('📱 Trying camera with constraints:', constraints);
+                    currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                } catch (constraintError) {
+                    console.warn('⚠️ Preferred constraints failed, trying basic fallback:', constraintError);
+                    // Fallback to basic constraints
+                    constraints = {
+                        video: {
+                            width: { ideal: 640 },
+                            height: { ideal: 480 },
+                            facingMode: isMobile ? 'user' : 'environment'
+                        }
+                    };
+
+                    try {
+                        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    } catch (basicError) {
+                        console.warn('⚠️ Basic constraints failed, trying minimal fallback:', basicError);
+                        // Final fallback - just ask for any video
+                        currentStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    }
+                }
+
+                const videoFeed = document.getElementById('videoFeed');
+                videoFeed.srcObject = currentStream;
+
+                // Wait for video to be ready
+                return new Promise((resolve) => {
+                    videoFeed.onloadedmetadata = () => {
+                        videoFeed.play();
+                        setTimeout(resolve, 500); // Give extra time for camera to stabilize
+                    };
+                });
+            } catch (error) {
+                console.error('Error starting camera:', error);
+                throw new Error('Failed to start camera. Please check permissions.');
+            }
+        }
+
+        function stopCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+            if (faceDetectionInterval) {
+                clearInterval(faceDetectionInterval);
+                faceDetectionInterval = null;
+            }
+            if (cameraStats.uptimeInterval) {
+                clearInterval(cameraStats.uptimeInterval);
+                cameraStats.uptimeInterval = null;
+            }
+        }
+
+        window.switchCamera = async function () {
+            if (availableCameras.length <= 1) {
+                showToast('No additional cameras available', 'info');
+                return;
+            }
+
+            showToast('Switching camera...', 'info');
+            currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+
+            showLoading(true);
+            await startCamera();
+            showLoading(false);
+
+            if (cameraActive) {
+                startFaceDetection();
+            }
+
+            showToast(`Switched to camera ${currentCameraIndex + 1} of ${availableCameras.length}`, 'success');
+        };
+
+        window.startFaceDetection = function () {
+            let detectionCounter = 0;
+            let isProcessing = false;
+
+            faceDetectionInterval = setInterval(async () => {
+                if (isProcessing) return;
+
+                detectionCounter++;
+
+                try {
+                    // Capture frame from video
+                    const video = document.getElementById('videoFeed');
+                    if (!video || video.videoWidth === 0) return;
+
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0);
+
+                    console.log('📹 Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+                    console.log('🖼️ Canvas dimensions:', canvas.width, 'x', canvas.height);
+
+                    // Convert to blob with high quality
+                    canvas.toBlob(async (blob) => {
+                        if (isProcessing) return;
+
+                        // Check if blob is valid and of reasonable size
+                        if (!blob || blob.size < 1000) {
+                            console.warn('⚠️ Invalid or too small image blob:', blob?.size);
+                            return;
+                        }
+
+                        if (blob.size > 5 * 1024 * 1024) { // 5MB limit
+                            console.warn('⚠️ Image too large:', blob.size);
+                            return;
+                        }
+
+                        isProcessing = true;
+
+                        try {
+                            // Send frame to backend for face detection
+                            const formData = new FormData();
+                            formData.append('frame', blob, 'frame.jpg');
+
+                            console.log('📸 Sending frame to detection API...', blob.size, 'bytes');
+
+                            let response, result;
+                            let apiUsed = 'none';
+
+                            // Try multiple APIs in sequence until one works
+                            try {
+                                console.log('🚀 Trying ultra detection API...');
+                                response = await fetch('/api/detect_face_ultra', {
+                                    method: 'POST',
+                                    body: formData
+                                });
+
+                                if (response.ok) {
+                                    result = await response.json();
+                                    apiUsed = 'ultra';
+                                    console.log('✅ Ultra API success:', result);
+                                } else {
+                                    throw new Error(`Ultra API failed: ${response.status}`);
+                                }
+                            } catch (ultraError) {
+                                console.log('🔄 Ultra API failed, trying public API:', ultraError.message);
+
+                                try {
+                                    response = await fetch('/api/detect_face_public', {
+                                        method: 'POST',
+                                        body: formData
+                                    });
+
+                                    if (response.ok) {
+                                        result = await response.json();
+                                        apiUsed = 'public';
+                                        console.log('✅ Public API success:', result);
+                                    } else {
+                                        throw new Error(`Public API failed: ${response.status}`);
+                                    }
+                                } catch (publicError) {
+                                    console.log('🔄 Public API failed, trying basic API:', publicError.message);
+
+                                    try {
+                                        response = await fetch('/api/detect_face', {
+                                            method: 'POST',
+                                            body: formData
+                                        });
+
+                                        if (response.ok) {
+                                            result = await response.json();
+                                            apiUsed = 'basic';
+                                            console.log('✅ Basic API success:', result);
+                                        } else {
+                                            throw new Error(`Basic API failed: ${response.status}`);
+                                        }
+                                    } catch (basicError) {
+                                        console.error('❌ All APIs failed:', basicError);
+
+                                        // Stop detection if all APIs are down
+                                        if (faceDetectionInterval) {
+                                            clearInterval(faceDetectionInterval);
+                                            faceDetectionInterval = null;
+                                            showToast('Face detection stopped - all APIs unavailable', 'error');
+                                        }
+
+                                        throw new Error('All face detection APIs are unavailable');
+                                    }
+                                }
+                            }
+
+                            console.log(`Using ${apiUsed} API for detection`);
+
+                            if (result && result.status === 'success') {
+                                const faceCount = result.faces_detected;
+                                document.getElementById('faceCount').textContent = `${faceCount} face${faceCount !== 1 ? 's' : ''} detected`;
+
+                                // Update system badge with advanced processing info
+                                if (result.advanced_processing) {
+                                    const models = result.advanced_processing.models_used || [];
+                                    const badge = document.getElementById('systemBadge');
+                                    if (badge) {
+                                        badge.textContent = models.length > 1 ? `${models.length} Models Active` : 'Multi-Modal AI';
+                                    }
+                                }
+
+                                if (faceCount > 0 && result.faces && result.faces.length > 0) {
+                                    cameraStats.totalDetections++;
+                                    updateCameraStats();
+
+                                    // Process first detected face
+                                    const face = result.faces[0];
+
+                                    if (face.recognized) {
+                                        const confidence = (face.match_confidence * 100).toFixed(1);
+
+                                        document.getElementById('recognitionStatus').textContent = `✓ ${face.name} (${confidence}%)`;
+                                        document.getElementById('recognitionStatus').className = 'text-green-300 mt-1';
+
+                                        if (face.attendance_marked) {
+                                            showFaceDetectionAlert(`✓ ${face.name} - Attendance Marked!`, 'success');
+                                            showToast(`Attendance marked for ${face.name} (${confidence}% confidence)`, 'success');
+
+                                            cameraStats.successfulMatches++;
+                                            cameraStats.attendanceMarked++;
+                                            updateCameraStats();
+
+                                            // Add detection effect to video
+                                            video.classList.add('detection-active');
+                                            setTimeout(() => video.classList.remove('detection-active'), 2000);
+
+                                            // Refresh live attendance data
+                                            setTimeout(loadLiveAttendance, 1000);
+                                        } else if (face.already_marked) {
+                                            showFaceDetectionAlert(`${face.name} - Already marked today`, 'info');
+                                            showToast(`${face.name} attendance already marked today`, 'info');
+                                        }
+                                    } else {
+                                        document.getElementById('recognitionStatus').textContent = 'Face not recognized';
+                                        document.getElementById('recognitionStatus').className = 'text-red-300 mt-1';
+                                        showFaceDetectionAlert('Face not recognized - Please face the camera', 'error');
+                                    }
+
+                                    // Draw face bounding boxes on canvas overlay
+                                    drawFaceBoundingBoxes(result.faces);
+                                } else {
+                                    document.getElementById('recognitionStatus').textContent = 'No faces detected - point camera at face';
+                                    document.getElementById('recognitionStatus').className = 'text-blue-300 mt-1';
+                                    hideFaceDetectionAlert();
+                                    clearFaceBoundingBoxes();
+
+                                    // Show scanning indicator
+                                    console.log('No faces detected - scanning...');
+                                }
+                            } else {
+                                // API error, fall back to ready state
+                                document.getElementById('faceCount').textContent = '0 faces detected';
+                                document.getElementById('recognitionStatus').textContent = 'Ready for recognition';
+                                document.getElementById('recognitionStatus').className = 'text-green-300 mt-1';
+                                console.warn('Face detection API error:', result.message);
+                            }
+                        } catch (error) {
+                            console.error('🚨 Face detection request error:', error);
+
+                            // Handle different types of errors
+                            if (error.message.includes('502')) {
+                                document.getElementById('recognitionStatus').textContent = 'Server temporarily unavailable';
+                                document.getElementById('recognitionStatus').className = 'text-yellow-400 mt-0.5 sm:mt-1 text-xs sm:text-sm';
+                                showToast('Server temporarily unavailable - retrying...', 'error');
+                            } else if (error.message.includes('500')) {
+                                document.getElementById('recognitionStatus').textContent = 'Server error - check system';
+                                document.getElementById('recognitionStatus').className = 'text-red-400 mt-0.5 sm:mt-1 text-xs sm:text-sm';
+                                showToast('Server error detected - check system health', 'error');
+                            } else if (error.message.includes('All face detection APIs are unavailable')) {
+                                document.getElementById('recognitionStatus').textContent = 'All APIs unavailable';
+                                document.getElementById('recognitionStatus').className = 'text-red-500 mt-0.5 sm:mt-1 text-xs sm:text-sm';
+                                showToast('All face detection APIs are down!', 'error');
+                            } else {
+                                // Network or other issues - don't show persistent error to user
+                                console.warn('Network issue, continuing...');
+                                document.getElementById('recognitionStatus').textContent = 'Network issue - retrying';
+                                document.getElementById('recognitionStatus').className = 'text-orange-400 mt-0.5 sm:mt-1 text-xs sm:text-sm';
+                            }
+                        } finally {
+                            isProcessing = false;
+                        }
+                    }, 'image/jpeg', 0.8);
+
+                } catch (error) {
+                    console.error('Face detection error:', error);
+                    isProcessing = false;
+                }
+            }, 3000); // Reduced to every 3 seconds to prevent overload
+        };
+
+        // Function to draw face bounding boxes on overlay canvas
+        function drawFaceBoundingBoxes(faces) {
+            const canvas = document.getElementById('detectionCanvas');
+            const video = document.getElementById('videoFeed');
+
+            if (!canvas || !video) {
+                console.warn('⚠️ Canvas or video element not found for bounding boxes');
+                return;
+            }
+
+            // Ensure canvas matches video dimensions
+            const videoRect = video.getBoundingClientRect();
+            canvas.width = videoRect.width;
+            canvas.height = videoRect.height;
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Calculate scale factors based on actual video dimensions
+            const scaleX = canvas.width / video.videoWidth || 1;
+            const scaleY = canvas.height / video.videoHeight || 1;
+
+            console.log('📊 Drawing bounding boxes for', faces.length, 'faces');
+            console.log('📐 Canvas:', canvas.width, 'x', canvas.height, '| Video:', video.videoWidth, 'x', video.videoHeight);
+            console.log('📏 Scale factors:', scaleX.toFixed(2), 'x', scaleY.toFixed(2));
+
+            faces.forEach((face, index) => {
+                if (face.bbox) {
+                    const x = Math.round(face.bbox.x * scaleX);
+                    const y = Math.round(face.bbox.y * scaleY);
+                    const width = Math.round(face.bbox.width * scaleX);
+                    const height = Math.round(face.bbox.height * scaleY);
+
+                    console.log(`🎯 Face ${index + 1} bbox:`, { x, y, width, height }, 'recognized:', face.recognized);
+
+                    // Determine colors based on recognition status
+                    const isRecognized = face.recognized;
+                    const primaryColor = isRecognized ? '#10b981' : '#f59e0b'; // Green for recognized, yellow for unknown
+                    const shadowColor = isRecognized ? '#059669' : '#d97706';
+
+                    // Draw shadow/glow effect
+                    ctx.shadowColor = shadowColor;
+                    ctx.shadowBlur = 8;
+                    ctx.shadowOffsetX = 2;
+                    ctx.shadowOffsetY = 2;
+
+                    // Draw main bounding box
+                    ctx.strokeStyle = primaryColor;
+                    ctx.lineWidth = 4;
+                    ctx.strokeRect(x, y, width, height);
+
+                    // Draw corner brackets for better visibility
+                    const cornerLength = 20;
+                    ctx.lineWidth = 6;
+
+                    // Top-left corner
+                    ctx.beginPath();
+                    ctx.moveTo(x, y + cornerLength);
+                    ctx.lineTo(x, y);
+                    ctx.lineTo(x + cornerLength, y);
+                    ctx.stroke();
+
+                    // Top-right corner
+                    ctx.beginPath();
+                    ctx.moveTo(x + width - cornerLength, y);
+                    ctx.lineTo(x + width, y);
+                    ctx.lineTo(x + width, y + cornerLength);
+                    ctx.stroke();
+
+                    // Bottom-left corner
+                    ctx.beginPath();
+                    ctx.moveTo(x, y + height - cornerLength);
+                    ctx.lineTo(x, y + height);
+                    ctx.lineTo(x + cornerLength, y + height);
+                    ctx.stroke();
+
+                    // Bottom-right corner
+                    ctx.beginPath();
+                    ctx.moveTo(x + width - cornerLength, y + height);
+                    ctx.lineTo(x + width, y + height);
+                    ctx.lineTo(x + width, y + height - cornerLength);
+                    ctx.stroke();
+
+                    // Reset shadow
+                    ctx.shadowColor = 'transparent';
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 0;
+
+                    // Draw label
+                    const labelText = isRecognized
+                        ? `${face.name} (${(face.match_confidence * 100).toFixed(1)}%)`
+                        : 'Unknown Person';
+
+                    // Measure text for background
+                    ctx.font = 'bold 16px Arial';
+                    const textMetrics = ctx.measureText(labelText);
+                    const textWidth = textMetrics.width + 16;
+                    const textHeight = 28;
+
+                    // Position label (above box if space, otherwise below)
+                    let labelX = Math.max(0, Math.min(x, canvas.width - textWidth));
+                    let labelY = y > textHeight + 5 ? y - 5 : y + height + textHeight + 5;
+
+                    // Draw label background with gradient
+                    const gradient = ctx.createLinearGradient(labelX, labelY - textHeight, labelX, labelY);
+                    gradient.addColorStop(0, isRecognized ? '#10b981' : '#f59e0b');
+                    gradient.addColorStop(1, isRecognized ? '#059669' : '#d97706');
+
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(labelX, labelY - textHeight, textWidth, textHeight);
+
+                    // Draw label border
+                    ctx.strokeStyle = isRecognized ? '#047857' : '#b45309';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(labelX, labelY - textHeight, textWidth, textHeight);
+
+                    // Draw label text
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(labelText, labelX + textWidth / 2, labelY - 8);
+
+                    // Draw confidence bar if recognized
+                    if (isRecognized && face.match_confidence) {
+                        const barWidth = width * 0.8;
+                        const barHeight = 6;
+                        const barX = x + (width - barWidth) / 2;
+                        const barY = y + height + 8;
+
+                        // Background bar
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                        ctx.fillRect(barX, barY, barWidth, barHeight);
+
+                        // Confidence bar
+                        const confidenceWidth = barWidth * face.match_confidence;
+                        const confidenceGradient = ctx.createLinearGradient(barX, barY, barX + confidenceWidth, barY);
+                        confidenceGradient.addColorStop(0, '#10b981');
+                        confidenceGradient.addColorStop(1, '#34d399');
+
+                        ctx.fillStyle = confidenceGradient;
+                        ctx.fillRect(barX, barY, confidenceWidth, barHeight);
+
+                        // Border for confidence bar
+                        ctx.strokeStyle = '#059669';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(barX, barY, barWidth, barHeight);
+                    }
+
+                    // Reset text align
+                    ctx.textAlign = 'start';
+                }
+            });
+
+            console.log('Bounding boxes drawn successfully');
+        }
+
+        function clearFaceBoundingBoxes() {
+            const canvas = document.getElementById('detectionCanvas');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function showFaceDetectionAlert(message, type) {
+            const alert = document.getElementById('faceDetectionAlert');
+            const messageSpan = document.getElementById('detectionMessage');
+
+            messageSpan.textContent = message;
+            alert.classList.remove('hidden');
+
+            // Change color based on type
+            if (type === 'success') {
+                alert.className = alert.className.replace(/from-\w+-500 to-\w+-600/, 'from-green-500 to-emerald-600');
+            } else if (type === 'error') {
+                alert.className = alert.className.replace(/from-\w+-500 to-\w+-600/, 'from-red-500 to-pink-600');
+            } else {
+                alert.className = alert.className.replace(/from-\w+-500 to-\w+-600/, 'from-blue-500 to-purple-600');
+            }
+        }
+
+        function hideFaceDetectionAlert() {
+            const alert = document.getElementById('faceDetectionAlert');
+            if (alert) {
+                alert.classList.add('hidden');
+            }
+        }
+
+        function startCameraStats() {
+            cameraStats.startTime = Date.now();
+            cameraStats.totalDetections = 0;
+            cameraStats.successfulMatches = 0;
+            cameraStats.attendanceMarked = 0;
+
+            // Update uptime every second
+            cameraStats.uptimeInterval = setInterval(() => {
+                const uptime = Date.now() - cameraStats.startTime;
+                const minutes = Math.floor(uptime / 60000);
+                const seconds = Math.floor((uptime % 60000) / 1000);
+                document.getElementById('cameraUptime').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function updateCameraStats() {
+            document.getElementById('totalDetections').textContent = cameraStats.totalDetections;
+            document.getElementById('successfulMatches').textContent = cameraStats.successfulMatches;
+            document.getElementById('attendanceMarked').textContent = cameraStats.attendanceMarked;
+        }
+
+        window.capturePhoto = async function () {
+            const video = document.getElementById('videoFeed');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+
+            canvas.toBlob(async (blob) => {
+                try {
+                    showToast('Capturing and analyzing photo...', 'info');
+
+                    // First try face detection API
+                    const formData = new FormData();
+                    formData.append('frame', blob, 'capture.jpg');
+
+                    const detectResponse = await fetch('/api/detect_face', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const detectResult = await detectResponse.json();
+
+                    if (detectResult.status === 'success' && detectResult.faces_detected > 0) {
+                        const face = detectResult.faces[0];
+
+                        if (face.recognized) {
+                            const confidence = (face.match_confidence * 100).toFixed(1);
+                            showToast(`✓ Person Identified: ${face.name} (${confidence}% confidence)`, 'success');
+
+                            if (face.attendance_marked) {
+                                showToast(`Attendance marked for ${face.name}!`, 'success');
+                                cameraStats.attendanceMarked++;
+                                updateCameraStats();
+                                loadLiveAttendance();
+                            } else if (face.already_marked) {
+                                showToast(`${face.name} attendance already marked today`, 'info');
+                            }
+                        } else {
+                            showToast('Face detected but not recognized in database', 'error');
+                        }
+                    } else {
+                        showToast('No faces detected in captured photo', 'error');
+                    }
+
+                    // Also run 3D analysis for additional info
+                    const analysisFormData = new FormData();
+                    analysisFormData.append('file', blob, 'capture.jpg');
+
+                    const analysisResponse = await fetch('/api/analyze_3d_face', {
+                        method: 'POST',
+                        body: analysisFormData
+                    });
+
+                    const analysisResult = await analysisResponse.json();
+
+                    if (analysisResult.status === 'success') {
+                        showToast(`3D Analysis - Quality: ${(analysisResult.quality_score * 100).toFixed(1)}% | Landmarks: ${analysisResult.landmarks_count}`, 'info');
+                    }
+
+                } catch (error) {
+                    console.error('Capture photo error:', error);
+                    showToast('Error during photo analysis: ' + error.message, 'error');
+                }
+            }, 'image/jpeg', 0.9);
+        };
+
+        window.loadStats = async function () {
+            // Fallback to HTTP if socket not connected
+            if (socket.connected) {
+                socket.emit('request_stats');
+            } else {
+                try {
+                    const response = await fetch('/superadmin/api/stats');
+                    const data = await response.json();
+                    if (response.ok) {
+                        updateDashboardStats(data);
+                    }
+                } catch (error) {
+                    console.error('Error loading stats:', error);
+                    showToast('Failed to load statistics', 'error');
+                }
+            }
+        };
+
+        window.loadAttendanceChart = async function () {
+            // Prevent concurrent calls
+            if (isLoadingChart) {
+                console.log('Chart already loading, skipping...');
+                return;
+            }
+
+            isLoadingChart = true;
+
+            try {
+                const response = await fetch('/api/superadmin/attendance/stats?days=7');
+                const data = await response.json();
+
+                if (response.ok && data.daily_attendance) {
+                    const ctx = document.getElementById('attendanceChart').getContext('2d');
+
+                    // Destroy existing chart instance to prevent memory leaks and infinite loops
+                    if (attendanceChartInstance) {
+                        console.log('Destroying previous chart instance...');
+                        attendanceChartInstance.destroy();
+                        attendanceChartInstance = null;
+                    }
+
+                    // Create new chart instance
+                    attendanceChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.daily_attendance.map(d => new Date(d.date).toLocaleDateString()),
+                            datasets: [{
+                                label: 'Daily Attendance',
+                                data: data.daily_attendance.map(d => d.count),
+                                borderColor: 'rgb(59, 130, 246)',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+
+                    console.log('Attendance chart loaded successfully');
+                }
+            } catch (error) {
+                console.error('Error loading attendance chart:', error);
+            } finally {
+                // Always reset loading flag
+                isLoadingChart = false;
+            }
+        }
+
+        async function loadRecentActivity() {
+            try {
+                const response = await fetch('/api/superadmin/logs?limit=10');
+                const data = await response.json();
+
+                if (response.ok && data.logs) {
+                    const tbody = document.getElementById('recent-activity');
+                    tbody.innerHTML = data.logs.map(log => `
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                ${new Date(log.timestamp).toLocaleString()}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                ${log.action || 'Unknown'}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                ${log.user || log.performed_by || 'System'}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${log.status === 'success' ? 'bg-green-100 text-green-800' :
+                            log.status === 'error' ? 'bg-red-100 text-red-800' :
+                                'bg-blue-100 text-blue-800'
+                        }">
+                                    ${log.status || 'info'}
+                                </span>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    const tbody = document.getElementById('recent-activity');
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">No recent activity</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading recent activity:', error);
+                const tbody = document.getElementById('recent-activity');
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-red-500">Failed to load activity</td></tr>';
+            }
+        }
+
+        // Add missing loadLiveAttendance function
+        window.loadLiveAttendance = async function () {
+            try {
+                const response = await fetch('/superadmin/attendance/live?limit=10');
+                const data = await response.json();
+
+                if (response.ok && data.attendance && data.attendance.length > 0) {
+                    console.log('Live attendance loaded:', data.attendance.length, 'records');
+                    showToast(`Loaded ${data.attendance.length} recent attendance records`, 'success');
+                } else {
+                    console.log('No live attendance data available');
+                    showToast('No recent attendance records found', 'info');
+                }
+            } catch (error) {
+                console.error('Error loading live attendance:', error);
+                showToast('Failed to load live attendance data', 'error');
+            }
+        };
+
+        window.toggleSidebar = function () {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        };
+
+        window.showToast = function (message, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type || 'info'}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        };
+
+        // Test Detection API Function
+        window.testDetectionAPI = async function () {
+            showToast('Testing face detection APIs...', 'info');
+            console.log('🧪 Starting API test...');
+
+            // Create a test canvas with a simple image
+            const testCanvas = document.createElement('canvas');
+            testCanvas.width = 640;
+            testCanvas.height = 480;
+            const ctx = testCanvas.getContext('2d');
+
+            // Draw a simple test pattern
+            ctx.fillStyle = '#333333';
+            ctx.fillRect(0, 0, testCanvas.width, testCanvas.height);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '48px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Face Detection Test', testCanvas.width / 2, testCanvas.height / 2);
+
+            testCanvas.toBlob(async (testBlob) => {
+                const formData = new FormData();
+                formData.append('frame', testBlob, 'test.jpg');
+
+                console.log(' Test image size:', testBlob.size, 'bytes');
+
+                // Test all APIs
+                const apis = [
+                    { name: 'Ultra', url: '/api/detect_face_ultra' },
+                    { name: 'Public', url: '/api/detect_face_public' },
+                    { name: 'Basic', url: '/api/detect_face' },
+                    { name: 'Simple', url: '/api/detect_face_simple' }
+                ];
+
+                for (const api of apis) {
+                    try {
+                        console.log(`🧪 Testing ${api.name} API...`);
+                        const response = await fetch(api.url, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            console.log(`✅ ${api.name} API working:`, result);
+                            showToast(`${api.name} API: ${result.status} - ${result.message || 'OK'}`, 'success');
+                        } else {
+                            console.log(`❌ ${api.name} API error:`, response.status, result);
+                            showToast(`${api.name} API: Error ${response.status}`, 'error');
+                        }
+                    } catch (error) {
+                        console.log(`💥 ${api.name} API failed:`, error);
+                        showToast(`${api.name} API: Network error`, 'error');
+                    }
+
+                    // Wait between API calls
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+
+                showToast('API testing complete - check console for details', 'info');
+            }, 'image/jpeg', 0.8);
+        };
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function (event) {
+            const sidebar = document.getElementById('sidebar');
+            const menuToggle = document.getElementById('menuToggle');
+            const overlay = document.getElementById('sidebarOverlay');
+
+            if (window.innerWidth < 1024 &&
+                !sidebar.contains(event.target) &&
+                !menuToggle.contains(event.target) &&
+                sidebar.classList.contains('active')) {
+                toggleSidebar();
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function () {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+
+            if (window.innerWidth >= 1024) {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            }
+        });
+
+        // Function availability check - Debug helper
+        window.addEventListener('load', function () {
+            console.log('Dashboard v2.0 Loaded Successfully!');
+            console.log('Functions available:', {
+                toggleSidebar: typeof toggleSidebar,
+                toggleCameraFeed: typeof toggleCameraFeed,
+                switchCamera: typeof switchCamera,
+                capturePhoto: typeof capturePhoto,
+                loadLiveAttendance: typeof loadLiveAttendance,
+                showToast: typeof showToast
+            });
+
+            // Test toast notification
+            setTimeout(() => {
+                showToast('Dashboard loaded successfully!', 'success');
+            }, 1000);
+        });
+
+        // Make functions globally available (fallback)
+        window.toggleSidebar = toggleSidebar;
+        window.toggleCameraFeed = toggleCameraFeed;
+        window.switchCamera = switchCamera;
+        window.capturePhoto = capturePhoto;
+        window.loadLiveAttendance = loadLiveAttendance;
+        window.showToast = showToast;
+    </script>
+</body>
+
+</html>

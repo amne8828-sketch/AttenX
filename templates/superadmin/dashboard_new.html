@@ -1,0 +1,2899 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Dashboard - Smart Attendance System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .card-hover:hover {
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .stat-card-2 {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .stat-card-3 {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .stat-card-4 {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        /* Mobile Sidebar */
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 40;
+            display: none;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+        }
+
+        .sidebar {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.active {
+            transform: translateX(0);
+        }
+
+        /* Enhanced Camera Styles */
+        .touch-manipulation {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .video-stream {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            /* Changed from cover to show full frame */
+            border-radius: 0.75rem;
+            /* rounded-xl */
+            background-color: #000;
+            /* Black background for letterboxing */
+        }
+
+        /* Mirror mode class - applied via JS */
+        .mirror-mode {
+            transform: scaleX(-1);
+        }
+
+        /* Camera height responsive */
+        .camera-height {
+            height: 480px;
+            /* Default desktop height */
+            min-height: 300px;
+            max-height: 600px;
+            transition: height 0.3s ease;
+        }
+
+        /* Mobile camera optimizations */
+        @media (max-width: 768px) {
+            .camera-height {
+                height: 350px;
+                /* Better mobile height */
+            }
+
+            .camera-container {
+                min-height: 300px !important;
+            }
+
+            /* REMOVED unconditional mirroring */
+            /* .video-stream { transform: scaleX(-1); } */
+
+            /* Better mobile touch targets */
+            button {
+                min-height: 44px;
+                min-width: 44px;
+            }
+
+            /* Mobile face detection overlay adjustments */
+            #overlayCanvas {
+                /* Mirroring handled by JS class now */
+                width: 100%;
+                height: 100%;
+            }
+        }
+
+        /* Detection success animation */
+        .detection-active {
+            animation: detectionPulse 2s ease-in-out;
+        }
+
+        @keyframes detectionPulse {
+
+            0%,
+            100% {
+                filter: brightness(1) saturate(1);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+
+            50% {
+                filter: brightness(1.2) saturate(1.3);
+                box-shadow: 0 0 20px 5px rgba(16, 185, 129, 0.3);
+            }
+        }
+
+        /* Toast notification styles for mobile */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            max-width: 350px;
+            word-wrap: break-word;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .toast.error {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .toast.info {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+
+        @media (max-width: 768px) {
+            .toast {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+                transform: translateY(-100px);
+            }
+
+            .toast.show {
+                transform: translateY(0);
+            }
+        }
+
+        /* Camera loading animation */
+        @keyframes cameraInit {
+            0% {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .camera-ready {
+            animation: cameraInit 0.5s ease-out;
+        }
+
+        /* Face detection pulse effect */
+        @keyframes detectPulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+            }
+        }
+
+        .detection-active {
+            animation: detectPulse 2s infinite;
+        }
+
+        .camera-height {
+            min-height: 280px;
+            max-height: 500px;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background: #10b981;
+        }
+
+        .toast.error {
+            background: #ef4444;
+        }
+
+        .toast.info {
+            background: #3b82f6;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 min-h-screen relative overflow-x-hidden">
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay z-40" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Navigation -->
+    <nav class="gradient-bg shadow-lg relative z-30">
+        <!-- ... (rest of nav) ... -->
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <button id="menuToggle" onclick="toggleSidebar()"
+                        class="lg:hidden text-white mr-3 p-2 rounded-md hover:bg-white/10">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <i class="fas fa-shield-alt text-white text-2xl mr-3"></i>
+                    <h1 class="text-white text-xl font-bold">Super Admin Dashboard</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-white hidden sm:block">
+                        <i class="fas fa-user-circle mr-2"></i>
+                        {{ superadmin.name or superadmin.email }}
+                    </div>
+                    <a href="{{ url_for('logout') }}"
+                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-300">
+                        <i class="fas fa-sign-out-alt mr-2"></i><span class="hidden sm:inline">Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex">
+        <!-- Sidebar -->
+        <div id="sidebar" class="sidebar fixed lg:static lg:translate-x-0 w-64 bg-white shadow-lg min-h-screen z-50">
+            <div class="p-6">
+                <!-- Secret Trigger Header -->
+                <div class="mb-6 pb-4 border-b border-gray-200">
+                    <h2 id="secretTrigger"
+                        class="text-gray-800 font-bold text-lg cursor-pointer select-none hover:text-indigo-600 transition-colors">
+                        <i class="fas fa-shield-alt mr-2"></i>Super Admin
+                    </h2>
+                </div>
+
+                <nav class="space-y-2">
+                    <a href="{{ url_for('superadmin.dashboard') }}"
+                        class="flex items-center px-4 py-3 text-gray-700 bg-blue-50 rounded-lg">
+                        <i class="fas fa-tachometer-alt mr-3"></i>Dashboard
+                    </a>
+                    <a href="{{ url_for('superadmin.admins') }}"
+                        class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg">
+                        <i class="fas fa-users-cog mr-3"></i>Manage Admins
+                    </a>
+                    <a href="{{ url_for('superadmin.cameras') }}"
+                        class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg">
+                        <i class="fas fa-video mr-3"></i>Camera Manager
+                    </a>
+                    <a href="{{ url_for('superadmin.gallery') }}"
+                        class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg">
+                        <i class="fas fa-images mr-3"></i>Gallery
+                    </a>
+                    <a href="/superadmin/users"
+                        class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg">
+                        <i class="fas fa-users mr-3"></i>Users
+                    </a>
+                    <a href="/superadmin/logs"
+                        class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg">
+                        <i class="fas fa-file-alt mr-3"></i>System Logs
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 min-w-0 lg:ml-0 p-4 lg:p-8">
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="stat-card rounded-xl p-6 text-white card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-white/80 text-sm">Total Admins</p>
+                            <p class="text-3xl font-bold" id="total-admins">{{ stats.total_admins or 0 }}</p>
+                        </div>
+                        <i class="fas fa-users-cog text-4xl text-white/60"></i>
+                    </div>
+                </div>
+
+                <div class="stat-card-2 rounded-xl p-6 text-white card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-white/80 text-sm">Total Users</p>
+                            <p class="text-3xl font-bold" id="total-users">{{ stats.total_users or 0 }}</p>
+                        </div>
+                        <i class="fas fa-users text-4xl text-white/60"></i>
+                    </div>
+                </div>
+
+                <div class="stat-card-3 rounded-xl p-6 text-white card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-white/80 text-sm">Active Cameras</p>
+                            <p class="text-3xl font-bold" id="active-cameras">{{ stats.active_cameras or 0 }}</p>
+                        </div>
+                        <i class="fas fa-video text-4xl text-white/60"></i>
+                    </div>
+                </div>
+
+                <div class="stat-card-4 rounded-xl p-6 text-white card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-white/80 text-sm">Pending Requests</p>
+                            <p class="text-3xl font-bold" id="pending-requests">{{ stats.pending_requests or 0 }}</p>
+                        </div>
+                        <i class="fas fa-clock text-4xl text-white/60"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enhanced Live Attendance Camera -->
+            <div class="bg-white rounded-xl shadow-lg p-3 sm:p-6 mb-8">
+                <div
+                    class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-camera mr-2 text-purple-500 text-lg sm:text-xl"></i>
+                        <span id="liveIndicator"
+                            class="pulse w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full mr-2"></span>
+                        <h3 class="text-lg sm:text-xl font-bold text-gray-800">Live 3D Face Recognition</h3>
+                    </div>
+                    <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                        <select id="cameraSelect"
+                            class="hidden bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-purple-500 dark:focus:border-purple-500 mr-2">
+                            <!-- Options loaded dynamically -->
+                        </select>
+                        <button id="toggleCamera" onclick="handleCameraBtnClick()"
+                            class="flex-1 sm:flex-initial bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center justify-center touch-manipulation">
+                            <i class="fas fa-play mr-1 sm:mr-2 text-sm"></i>
+                            <span class="text-sm sm:text-base">Start Camera</span>
+                        </button>
+                        <button id="switchCamera" onclick="switchCamera()"
+                            class="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 hidden touch-manipulation">
+                            <i class="fas fa-sync-alt mr-1 sm:mr-2 text-sm"></i>
+                            <span class="text-sm sm:text-base">Switch</span>
+                        </button>
+                        <button id="capturePhoto" onclick="capturePhoto()"
+                            class="flex-1 sm:flex-initial bg-green-600 hover:bg-green-700 active:bg-green-800 text-white px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 hidden touch-manipulation">
+                            <i class="fas fa-camera mr-1 sm:mr-2 text-sm"></i>
+                            <span class="text-sm sm:text-base">Capture</span>
+                        </button>
+                        <button id="testAPI" onclick="testDetectionAPI()"
+                            class="flex-1 sm:flex-initial bg-yellow-600 hover:bg-yellow-700 active:bg-yellow-800 text-white px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 touch-manipulation">
+                            <i class="fas fa-vial mr-1 sm:mr-2 text-sm"></i>
+                            <span class="text-sm sm:text-base">Test API</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div
+                    class="relative bg-gradient-to-br from-gray-900 to-purple-900 rounded-xl overflow-hidden camera-height w-full">
+                    <!-- Camera Placeholder -->
+                    <div id="cameraPlaceholder"
+                        class="absolute inset-0 flex flex-col items-center justify-center text-white p-4 sm:p-8">
+                        <div class="text-center">
+                            <i class="fas fa-cube text-4xl sm:text-6xl mb-3 sm:mb-4 text-purple-300 animate-pulse"></i>
+                            <h4 class="text-lg sm:text-xl font-semibold mb-2">Advanced 3D Face Recognition</h4>
+                            <div class="flex flex-wrap justify-center gap-3 sm:gap-4 text-xs opacity-75">
+                                <span><i class="fas fa-brain mr-1"></i>3D Analysis</span>
+                                <span><i class="fas fa-shield-alt mr-1"></i>Anti-Spoofing</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Container -->
+                    <div id="videoContainer" class="relative w-full h-full hidden">
+                        <video id="videoFeed" class="video-stream w-full h-full object-cover" autoplay muted
+                            playsinline></video>
+                        <iframe id="serverFeed" class="video-stream hidden w-full h-full object-cover" src=""
+                            frameborder="0" allow="autoplay; fullscreen"></iframe>
+                        <canvas id="overlayCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+
+                        <!-- Detection Info -->
+                        <div
+                            class="absolute top-2 sm:top-4 right-2 sm:right-4 bg-black bg-opacity-80 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-xs sm:text-sm backdrop-blur-sm z-10">
+                            <div id="faceCount" class="font-semibold">Scanning...</div>
+                            <div id="recognitionStatus" class="text-green-300 mt-0.5 sm:mt-1 text-xs sm:text-sm">Ready
+                            </div>
+                        </div>
+
+                        <!-- Face Detection Alert -->
+                        <div id="faceDetectionAlert"
+                            class="absolute bottom-14 sm:bottom-16 left-2 sm:left-2 right-2 sm:right-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-center font-semibold hidden transform transition-all duration-300 z-10">
+                            <div id="detectionMessage" class="text-sm sm:text-base"></div>
+                        </div>
+
+                        <!-- Attendance Success Alert -->
+                        <div id="attendanceAlert"
+                            class="absolute bottom-2 sm:bottom-4 left-2 sm:left-2 right-2 sm:right-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-center font-semibold hidden transform transition-all duration-300 z-10">
+                            <div id="attendanceMessage" class="text-sm sm:text-base"></div>
+                        </div>
+
+                        <!-- Loading Indicator -->
+                        <div id="cameraLoading"
+                            class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-20">
+                            <div class="text-white text-center">
+                                <div
+                                    class="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-white mx-auto mb-2 sm:mb-4">
+                                </div>
+                                <p class="text-xs sm:text-sm">Processing...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Camera Stats -->
+                <div class="mt-3 sm:mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-center">
+                    <div class="bg-purple-50 p-2 sm:p-3 rounded-lg">
+                        <div class="text-xs sm:text-sm text-purple-600 font-semibold" id="totalDetections">0</div>
+                        <div class="text-xs text-purple-500">Detections</div>
+                    </div>
+                    <div class="bg-green-50 p-2 sm:p-3 rounded-lg">
+                        <div class="text-xs sm:text-sm text-green-600 font-semibold" id="successfulMatches">0</div>
+                        <div class="text-xs text-green-500">Matches</div>
+                    </div>
+                    <div class="bg-blue-50 p-2 sm:p-3 rounded-lg">
+                        <div class="text-xs sm:text-sm text-blue-600 font-semibold" id="attendanceMarked">0</div>
+                        <div class="text-xs text-blue-500">Attendance</div>
+                    </div>
+                    <div class="bg-yellow-50 p-2 sm:p-3 rounded-lg">
+                        <div class="text-xs sm:text-sm text-yellow-600 font-semibold" id="cameraUptime">00:00</div>
+                        <div class="text-xs text-yellow-500">Uptime</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Chart -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-chart-bar mr-2 text-blue-500"></i>Attendance Trends (Last 7 Days)
+                </h3>
+                <div class="h-64">
+                    <canvas id="attendanceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-clock mr-2 text-purple-500"></i>Recent Activity
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full table-auto">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Time</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Action</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    User</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-activity" class="bg-white divide-y divide-gray-200">
+                            <!-- Activity will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AssistBuddy Floating Action Button -->
+    <div class="fixed bottom-6 right-6 z-50">
+        <button onclick="toggleAssistBuddy()"
+            class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-full p-4 shadow-2xl transition-all duration-300 transform hover:scale-110 flex items-center justify-center group">
+            <i class="fas fa-robot text-2xl group-hover:rotate-12 transition-transform duration-300"></i>
+            <span
+                class="absolute right-full mr-4 bg-white text-gray-800 px-3 py-1 rounded-lg text-sm font-semibold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap hidden sm:block">
+                Ask AssistBuddy
+            </span>
+        </button>
+    </div>
+
+    <!-- AssistBuddy Chat Interface -->
+    <div id="assistBuddyModal"
+        class="fixed bottom-24 right-6 w-96 max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-8rem)] bg-slate-900/60 backdrop-blur-xl rounded-2xl shadow-2xl transform translate-y-[120%] transition-transform duration-500 z-50 flex flex-col border border-white/10 overflow-hidden">
+
+        <!-- Header -->
+        <div
+            class="bg-white/5 backdrop-blur-md p-4 flex items-center justify-between shrink-0 border-b border-white/10">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-br from-indigo-500 to-purple-600 p-2 rounded-lg shadow-lg">
+                    <i class="fas fa-robot text-white text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-white font-bold text-lg tracking-wide">AssistBuddy</h3>
+                    <p class="text-indigo-200 text-xs flex items-center">
+                        <span
+                            class="w-2 h-2 bg-green-400 rounded-full mr-1 animate-pulse shadow-[0_0_10px_rgba(74,222,128,0.5)]"></span>
+                        Online & Ready
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="toggleAssistBuddy()"
+                    class="text-white/60 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
+            <!-- Welcome Message -->
+            <div class="flex items-start space-x-3">
+                <div
+                    class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg border border-white/20">
+                    <i class="fas fa-robot text-white text-xs"></i>
+                </div>
+                <div
+                    class="bg-white/10 backdrop-blur-md p-3 rounded-2xl rounded-tl-none shadow-sm border border-white/10 max-w-[85%]">
+                    <p class="text-gray-100 text-sm">Hello! I'm AssistBuddy. I can analyze system data, images, videos,
+                        and documents. How can I help you today?</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Preview Area -->
+        <div id="filePreviewArea"
+            class="px-4 py-2 bg-white/5 border-t border-white/10 hidden flex flex-wrap gap-2 backdrop-blur-sm">
+            <!-- Previews injected here -->
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 bg-white/5 border-t border-white/10 shrink-0 backdrop-blur-md">
+            <!-- Voice Visualizer (Hidden by default) -->
+            <div id="voiceVisualizer" class="hidden mb-3 flex items-center justify-center space-x-1 h-8">
+                <div class="w-1 h-3 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                <div class="w-1 h-5 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 100ms"></div>
+                <div class="w-1 h-8 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 200ms"></div>
+                <div class="w-1 h-5 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 100ms"></div>
+                <div class="w-1 h-3 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                <span class="ml-2 text-xs text-indigo-200 font-medium">Listening...</span>
+            </div>
+
+            <div class="flex items-end space-x-2">
+                <!-- File Input (Hidden) -->
+                <input type="file" id="fileInput" multiple accept="image/*,video/*,.pdf,.txt,.csv" class="hidden">
+
+                <button onclick="document.getElementById('fileInput').click()"
+                    class="p-3 text-gray-400 hover:text-white transition-colors rounded-xl hover:bg-white/10 mb-0.5">
+                    <i class="fas fa-paperclip text-lg"></i>
+                </button>
+
+                <div class="flex-1 relative">
+                    <textarea id="chatInput" rows="1"
+                        class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:bg-black/40 transition-all resize-none max-h-32 scrollbar-hide"
+                        placeholder="Type a message..."></textarea>
+                    <button id="voiceBtn"
+                        class="absolute right-2 bottom-2 p-1.5 text-gray-400 hover:text-indigo-400 transition-colors rounded-lg hover:bg-white/10">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                </div>
+                <button onclick="sendMessage()"
+                    class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white p-3 rounded-xl shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10"
+                    id="sendBtn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secret Code Verification Modal -->
+    <div id="secretCodeModal"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-[9999]">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl transform transition-all">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-lock text-indigo-600 text-2xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">Secure Access Required</h3>
+                <p class="text-gray-600 text-sm">Enter the secret code to manage superadmins</p>
+            </div>
+            <input type="password" id="secretCodeInput"
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all mb-4"
+                placeholder="Enter secret code" />
+            <div class="flex gap-3">
+                <button onclick="closeSecretModal()"
+                    class="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-all">
+                    Cancel
+                </button>
+                <button onclick="verifySecretCode()"
+                    class="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-semibold transition-all shadow-lg">
+                    Verify
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Superadmin Management Modal -->
+    <div id="superadminManagementModal"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-[9999]">
+        <div
+            class="bg-white rounded-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-hidden shadow-2xl transform transition-all flex flex-col">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 flex items-center justify-between shrink-0">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-user-shield text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white font-bold text-xl">Superadmin Management</h3>
+                        <p class="text-indigo-100 text-sm">Manage system administrators</p>
+                    </div>
+                </div>
+                <button onclick="closeSuperadminModal()"
+                    class="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 overflow-y-auto p-6">
+                <!-- Add Superadmin Button -->
+                <div class="mb-6">
+                    <button onclick="showAddSuperadminForm()"
+                        class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg transition-all flex items-center">
+                        <i class="fas fa-plus mr-2"></i> Add Superadmin
+                    </button>
+                </div>
+
+                <!-- Add Superadmin Form (Hidden by default) -->
+                <div id="addSuperadminForm" class="hidden mb-6 bg-gray-50 p-6 rounded-xl border-2 border-gray-200">
+                    <h4 class="font-bold text-gray-800 mb-4">New Superadmin</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <input type="text" id="newSuperadminName" placeholder="Full Name"
+                            class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                        <input type="email" id="newSuperadminEmail" placeholder="Email"
+                            class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    </div>
+                    <input type="password" id="newSuperadminPassword" placeholder="Password"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none mb-4" />
+                    <div class="flex gap-3">
+                        <button onclick="hideAddSuperadminForm()"
+                            class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-all">
+                            Cancel
+                        </button>
+                        <button onclick="createSuperadmin()"
+                            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-all">
+                            Create Superadmin
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Superadmins List -->
+                <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Name</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Email</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Status
+                                </th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="superadminsList" class="divide-y divide-gray-200">
+                            <!-- Superadmins will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Custom Scrollbar for Chat */
+        #chatMessages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #chatMessages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #chatMessages::-webkit-scrollbar-thumb {
+            background-color: rgba(156, 163, 175, 0.5);
+            border-radius: 20px;
+        }
+
+        /* Markdown Styles within Chat */
+        .prose-sm p {
+            margin-bottom: 0.5em;
+        }
+
+        .prose-sm ul {
+            list-style-type: disc;
+            padding-left: 1.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose-sm pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 0.5em;
+            border-radius: 0.5em;
+            overflow-x: auto;
+        }
+
+        /* Animation classes */
+        .message-enter {
+            animation: messageSlideIn 0.3s ease-out forwards;
+        }
+
+        @keyframes messageSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        // AssistBuddy Logic
+        let isChatOpen = false;
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let selectedFiles = [];
+
+        function toggleAssistBuddy() {
+            const modal = document.getElementById('assistBuddyModal');
+            isChatOpen = !isChatOpen;
+
+            if (isChatOpen) {
+                modal.classList.remove('translate-y-[120%]');
+                modal.classList.add('translate-y-0');
+                document.getElementById('chatInput').focus();
+            } else {
+                modal.classList.add('translate-y-[120%]');
+                modal.classList.remove('translate-y-0');
+            }
+        }
+
+        // File Handling
+        const fileInput = document.getElementById('fileInput');
+        const filePreviewArea = document.getElementById('filePreviewArea');
+
+        fileInput.addEventListener('change', function (e) {
+            const files = Array.from(e.target.files);
+            selectedFiles = [...selectedFiles, ...files];
+            updateFilePreviews();
+            fileInput.value = ''; // Reset input
+        });
+
+        function updateFilePreviews() {
+            filePreviewArea.innerHTML = '';
+
+            if (selectedFiles.length > 0) {
+                filePreviewArea.classList.remove('hidden');
+                selectedFiles.forEach((file, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'relative group bg-white border border-gray-200 rounded-lg p-2 flex items-center space-x-2 shadow-sm';
+
+                    let icon = 'fa-file';
+                    if (file.type.startsWith('image/')) icon = 'fa-image text-purple-500';
+                    else if (file.type.startsWith('video/')) icon = 'fa-video text-red-500';
+                    else if (file.type.includes('pdf')) icon = 'fa-file-pdf text-red-600';
+
+                    div.innerHTML = `
+                        <i class="fas ${icon}"></i>
+                        <span class="text-xs text-gray-600 truncate max-w-[100px]">${file.name}</span>
+                        <button onclick="removeFile(${index})" class="ml-2 text-gray-400 hover:text-red-500">
+                            <i class="fas fa-times-circle"></i>
+                        </button>
+                    `;
+                    filePreviewArea.appendChild(div);
+                });
+            } else {
+                filePreviewArea.classList.add('hidden');
+            }
+        }
+
+        window.removeFile = function (index) {
+            selectedFiles.splice(index, 1);
+            updateFilePreviews();
+        };
+
+        // Auto-resize textarea
+        const chatInput = document.getElementById('chatInput');
+        chatInput.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            if (this.value === '') this.style.height = 'auto';
+        });
+
+        // Handle Enter key
+        chatInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+
+            if (!message && selectedFiles.length === 0) return;
+
+            // Add User Message
+            let displayMessage = message;
+            if (selectedFiles.length > 0) {
+                const fileNames = selectedFiles.map(f => `<i class="fas fa-paperclip mr-1"></i>${f.name}`).join('<br>');
+                displayMessage += (message ? '<br><br>' : '') + `<div class="text-xs text-gray-300 border-t border-white/20 pt-1 mt-1">${fileNames}</div>`;
+            }
+
+            addMessage(displayMessage, 'user');
+
+            // Prepare FormData
+            const formData = new FormData();
+            formData.append('message', message);
+            selectedFiles.forEach(file => {
+                formData.append('files', file);
+            });
+
+            // Reset UI
+            input.value = '';
+            input.style.height = 'auto';
+            selectedFiles = [];
+            updateFilePreviews();
+
+            // Show Thinking
+            const thinkingId = addThinkingIndicator();
+
+            try {
+                const response = await fetch('/superadmin/api/assistbuddy/chat', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                // Remove Thinking
+                removeMessage(thinkingId);
+
+                if (data.status === 'success') {
+                    addMessage(data.response, 'agent');
+
+                    // Check if form_data is returned (user creation)
+                    if (data.form_data) {
+                        addUserCreationForm(data.form_data);
+                    }
+                } else {
+                    addMessage('Sorry, I encountered an error: ' + data.error, 'agent', true);
+                }
+            } catch (error) {
+                removeMessage(thinkingId);
+                addMessage('Sorry, I could not connect to the server.', 'agent', true);
+                console.error('Chat error:', error);
+            }
+        }
+
+        function addUserCreationForm(formData) {
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = 'w-full message-enter';
+
+            div.innerHTML = `
+                <div class="bg-gradient-to-r from-purple-600/20 to-indigo-600/20 backdrop-blur-md p-4 rounded-xl border border-purple-500/30 max-w-full">
+                    <h4 class="text-white font-bold mb-3 flex items-center">
+                        <i class="fas fa-user-plus mr-2"></i>Create New User
+                    </h4>
+                    <form id="userCreationForm" class="space-y-3">
+                        <div>
+                            <label class="text-gray-300 text-sm block mb-1">Full Name *</label>
+                            <input type="text" name="name" value="${formData.name || ''}" required
+                                class="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div>
+                            <label class="text-gray-300 text-sm block mb-1">Email *</label>
+                            <input type="email" name="email" value="${formData.email || ''}" required
+                                class="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div>
+                            <label class="text-gray-300 text-sm block mb-1">Password *</label>
+                            <input type="password" name="password" value="${formData.password || ''}" required
+                                class="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div>
+                            <label class="text-gray-300 text-sm block mb-1">Department</label>
+                            <input type="text" name="department" value="${formData.department || 'General'}"
+                                class="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        ${formData.has_photo ? `
+                            <div class="text-sm text-green-300">
+                                <i class="fas fa-check-circle mr-1"></i>Photo uploaded: ${formData.photo_files.join(', ')}
+                            </div>
+                        ` : `
+                            <div class="text-sm text-yellow-300">
+                                <i class="fas fa-info-circle mr-1"></i>No photo uploaded. User can enroll face later.
+                            </div>
+                        `}
+                        <div class="flex space-x-2 pt-2">
+                            <button type="submit"
+                                class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-2 rounded-lg text-sm font-semibold transition-all">
+                                <i class="fas fa-check mr-1"></i>Create User
+                            </button>
+                            <button type="button" onclick="this.closest('.w-full').remove()"
+                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg text-sm font-semibold transition-all">
+                                <i class="fas fa-times mr-1"></i>Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+
+            // Handle form submission
+            div.querySelector('#userCreationForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const formElement = e.target;
+                const submitBtn = formElement.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Creating...';
+
+                const name = formElement.name.value;
+                const email = formElement.email.value;
+                const password = formElement.password.value;
+                const department = formElement.department.value;
+
+                // Send to chat API again with complete details
+                const message = `Create user ${name}, email ${email}, password ${password}, dept ${department}`;
+
+                // Re-upload files if they exist
+                const createFormData = new FormData();
+                createFormData.append('message', message);
+
+                // If photo was previously uploaded, we need to handle it
+                // For now, just send the message
+
+                try {
+                    const response = await fetch('/superadmin/api/assistbuddy/chat', {
+                        method: 'POST',
+                        body: createFormData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.status === 'success') {
+                        // Remove form
+                        div.remove();
+                        // Show success message
+                        addMessage(data.response, 'agent');
+                    } else {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                        addMessage('Error: ' + data.error, 'agent', true);
+                    }
+                } catch (error) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                    addMessage('Connection error', 'agent', true);
+                }
+            });
+        }
+
+        function addMessage(text, sender, isError = false) {
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = 'flex items-start space-x-3 message-enter';
+
+            const isAgent = sender === 'agent';
+
+            let contentHtml = isAgent ? marked.parse(text) : text.replace(/\n/g, '<br>');
+
+            div.innerHTML = `
+                ${isAgent ? `
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg border border-white/20">
+                    <i class="fas fa-robot text-white text-xs"></i>
+                </div>` : ''}
+                
+                <div class="${isAgent ? 'bg-white/10 text-gray-100 border-white/10' : 'bg-indigo-600/80 text-white ml-auto border-indigo-500/50'} backdrop-blur-md p-3 rounded-2xl ${isAgent ? 'rounded-tl-none' : 'rounded-tr-none'} shadow-sm border max-w-[85%] ${isError ? 'border-red-500/50 bg-red-500/20' : ''}">
+                    <div class="prose-sm ${isAgent ? 'text-gray-100' : 'text-white'}">
+                        ${contentHtml}
+                    </div>
+                </div>
+                
+                ${!isAgent ? `
+                <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0 border border-white/10">
+                    <i class="fas fa-user text-gray-300 text-xs"></i>
+                </div>` : ''}
+            `;
+
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            return div.id = 'msg-' + Date.now();
+        }
+
+        function addThinkingIndicator() {
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = 'flex items-start space-x-3 message-enter';
+            div.id = 'thinking-' + Date.now();
+
+            div.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg border border-white/20">
+                    <i class="fas fa-robot text-white text-xs"></i>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md p-3 rounded-2xl rounded-tl-none shadow-sm border border-white/10">
+                    <div class="flex space-x-1">
+                        <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                        <div class="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                        <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            return div.id;
+        }
+
+        function removeMessage(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        // Voice Logic
+        const voiceBtn = document.getElementById('voiceBtn');
+        const voiceVisualizer = document.getElementById('voiceVisualizer');
+
+        voiceBtn.addEventListener('click', async () => {
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        sendAudio(audioBlob);
+
+                        // Stop all tracks
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    voiceVisualizer.classList.remove('hidden');
+                    voiceBtn.classList.add('text-red-500', 'animate-pulse');
+                    chatInput.placeholder = "Listening...";
+                    chatInput.disabled = true;
+
+                } catch (err) {
+                    console.error('Error accessing microphone:', err);
+                    alert('Could not access microphone. Please check permissions.');
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                voiceVisualizer.classList.add('hidden');
+                voiceBtn.classList.remove('text-red-500', 'animate-pulse');
+                chatInput.placeholder = "Type a message...";
+                chatInput.disabled = false;
+                chatInput.focus();
+            }
+        });
+
+        async function sendAudio(audioBlob) {
+            // Add user "Audio Message" placeholder
+            addMessage('🎤 [Audio Message]', 'user');
+            const thinkingId = addThinkingIndicator();
+
+            const formData = new FormData();
+            formData.append('audio', audioBlob);
+
+            try {
+                const response = await fetch('/superadmin/api/assistbuddy/chat', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                removeMessage(thinkingId);
+
+                if (data.status === 'success') {
+                    // Update the last user message with transcription if available
+                    // For now just show response
+                    if (data.transcription) {
+                        // Optional: Replace [Audio Message] with transcription
+                    }
+                    addMessage(data.response, 'agent');
+                } else {
+                    addMessage('Error processing audio: ' + data.error, 'agent', true);
+                }
+            } catch (error) {
+                removeMessage(thinkingId);
+                addMessage('Connection error.', 'agent', true);
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+    <script type="text/javascript">
+        console.log('Dashboard v3.0 Loading...');
+
+        // Initialize Socket.IO
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('WebSocket Connected!');
+            socket.emit('request_stats');
+        });
+
+        socket.on('stats_update', (stats) => {
+            updateDashboardStats(stats);
+        });
+
+        function updateDashboardStats(data) {
+            if (document.getElementById('total-admins')) document.getElementById('total-admins').textContent = data.total_admins || 0;
+            if (document.getElementById('total-users')) document.getElementById('total-users').textContent = data.total_users || 0;
+            if (document.getElementById('active-cameras')) document.getElementById('active-cameras').textContent = data.active_cameras || 0;
+            if (document.getElementById('pending-requests')) document.getElementById('pending-requests').textContent = data.pending_enrollments || 0;
+
+            // Update system health
+            const faissSizeElement = document.getElementById('faiss-status');
+            if (faissSizeElement) {
+                if (data.faiss_index_size > 0) {
+                    faissSizeElement.innerHTML = '<i class="fas fa-check-circle mr-1"></i>Active (' + data.faiss_index_size + ')';
+                    faissSizeElement.className = 'px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm';
+                } else {
+                    faissSizeElement.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i>Empty';
+                    faissSizeElement.className = 'px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm';
+                }
+            }
+        }
+
+        // Global variables - No duplicates
+        var cameraActive = false;
+        var currentStream = null;
+        var availableCameras = [];
+        var currentCameraIndex = 0;
+        var faceDetectionInterval = null;
+        var isProcessing = false;
+        var sessionStats = {
+            totalScans: 0,
+            successfulScans: 0,
+            attendanceCount: 0
+        };
+        var isLoadingChart = false;
+        var attendanceChartInstance = null;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function () {
+            loadStats();
+            loadRecentActivity();
+            loadAttendanceChart();
+
+            // Check system health and show advanced status
+            checkAdvancedSystemHealth();
+
+            // Auto-refresh every 30 seconds
+            setInterval(() => {
+                if (document.hidden) return;
+                // loadStats(); // Handled by WebSocket
+                loadRecentActivity();
+            }, 30000);
+        });
+
+        // Check Advanced System Health
+        async function checkAdvancedSystemHealth() {
+            try {
+                const response = await fetch('/api/detection_health');
+                const health = await response.json();
+
+                console.log('Advanced System Health:', health);
+
+                if (health.overall_health) {
+                    // Update system status indicators
+                    const systemBadge = document.getElementById('systemBadge');
+                    if (systemBadge) {
+                        if (health.components.ultra_recognition) {
+                            systemBadge.textContent = 'Ultra AI Ready';
+                            systemBadge.className = systemBadge.className.replace('from-purple-500 to-purple-600', 'from-green-500 to-green-600');
+                        } else if (health.components.deepface && health.components.mediapipe) {
+                            systemBadge.textContent = 'Enhanced AI Ready';
+                            systemBadge.className = systemBadge.className.replace('from-purple-500 to-purple-600', 'from-blue-500 to-blue-600');
+                        }
+                    }
+
+                    showToast(`${health.recommendation} - 99.99% accuracy`, 'success');
+                } else {
+                    showToast('Basic detection available', 'warning');
+                }
+            } catch (error) {
+                console.error('Health check failed:', error);
+            }
+        }
+
+        // Sidebar toggle function
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Enhanced Camera System with Mobile Support
+        var cameraStats = {
+            totalDetections: 0,
+            successfulMatches: 0,
+            attendanceMarked: 0,
+            startTime: null
+        };
+
+        // Click handling variables
+        let cameraBtnClickTimer = null;
+
+        window.handleCameraBtnClick = function () {
+            if (cameraBtnClickTimer) {
+                clearTimeout(cameraBtnClickTimer);
+                cameraBtnClickTimer = null;
+                // Double click action
+                showCameraOptions();
+            } else {
+                cameraBtnClickTimer = setTimeout(() => {
+                    cameraBtnClickTimer = null;
+                    // Single click action
+                    toggleCameraFeed();
+                }, 250);
+            }
+        };
+
+        window.showCameraOptions = function () {
+            const select = document.getElementById('cameraSelect');
+            select.classList.toggle('hidden');
+            showToast('Camera options toggled', 'info');
+            // Fetch cameras if showing
+            if (!select.classList.contains('hidden')) {
+                getAvailableCameras();
+            }
+        };
+
+        async function startWebcam() {
+            try {
+                const videoFeed = document.getElementById('videoFeed');
+                const serverFeed = document.getElementById('serverFeed');
+                const switchBtn = document.getElementById('switchCamera');
+
+                // Hide server feed
+                serverFeed.classList.add('hidden');
+                serverFeed.src = "";
+
+                // Show video feed
+                videoFeed.classList.remove('hidden');
+
+                // Enumerate devices if not already done
+                if (availableCameras.length === 0) {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    availableCameras = devices.filter(device => device.kind === 'videoinput');
+                    console.log('Webcams found:', availableCameras.length);
+                }
+
+                // Show switch button if multiple cameras
+                if (availableCameras.length > 1) {
+                    switchBtn.classList.remove('hidden');
+                } else {
+                    switchBtn.classList.add('hidden');
+                }
+
+                // Select camera
+                const constraints = {
+                    video: availableCameras.length > 0
+                        ? { deviceId: { exact: availableCameras[currentCameraIndex].deviceId } }
+                        : true
+                };
+
+                // Stop existing stream if any
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoFeed.srcObject = stream;
+                currentStream = stream;
+
+                return Promise.resolve();
+            } catch (err) {
+                console.error("Error starting webcam:", err);
+                showToast("Error accessing webcam: " + err.message, "error");
+                throw err;
+            }
+        }
+
+        // Make all functions global immediately
+        window.toggleCameraFeed = async function () {
+            const toggleBtn = document.getElementById('toggleCamera');
+            const switchBtn = document.getElementById('switchCamera');
+            const captureBtn = document.getElementById('capturePhoto');
+            const placeholder = document.getElementById('cameraPlaceholder');
+            const videoContainer = document.getElementById('videoContainer');
+            const loadingIndicator = document.getElementById('cameraLoading');
+            const liveIndicator = document.getElementById('liveIndicator');
+            const cameraSelect = document.getElementById('cameraSelect');
+
+            if (!cameraActive) {
+                try {
+                    // Show loading
+                    showLoading(true);
+                    showToast('Initializing Face Recognition...', 'info');
+
+                    // Determine source: Server Camera or Webcam
+                    const isDropdownVisible = !cameraSelect.classList.contains('hidden');
+                    const selectedCamera = cameraSelect.value;
+
+                    if (isDropdownVisible && selectedCamera) {
+                        await startCamera(); // Start server camera
+                        showToast('Starting Server Camera...', 'info');
+                    } else {
+                        await startWebcam(); // Start local webcam (default or selected)
+                        showToast('Starting Local Webcam...', 'info');
+                    }
+
+                    // Hide loading and show video
+                    showLoading(false);
+                    placeholder.classList.add('hidden');
+                    videoContainer.classList.remove('hidden');
+
+                    // Update UI
+                    toggleBtn.innerHTML = '<i class="fas fa-stop mr-1 sm:mr-2 text-sm"></i><span class="text-sm sm:text-base">Stop Camera</span>';
+                    toggleBtn.className = toggleBtn.className.replace('bg-purple-600 hover:bg-purple-700 active:bg-purple-800', 'bg-red-600 hover:bg-red-700 active:bg-red-800');
+
+                    if (availableCameras.length > 1) {
+                        switchBtn.classList.remove('hidden');
+                    }
+                    captureBtn.classList.remove('hidden');
+
+                    // Change indicator to green (active)
+                    liveIndicator.className = liveIndicator.className.replace('bg-red-500', 'bg-green-500');
+
+                    // Start detection and stats
+                    startFaceDetection();
+                    startCameraStats();
+                    cameraActive = true;
+
+                    showToast('3D Face Recognition Camera Started - 99.99% Accuracy Active', 'success');
+                } catch (error) {
+                    console.error('Camera error:', error);
+                    showLoading(false);
+                    showToast('Camera access denied. Please allow camera permissions.', 'error');
+                }
+            } else {
+                stopCamera();
+
+                // Show placeholder
+                placeholder.classList.remove('hidden');
+                videoContainer.classList.add('hidden');
+
+                // Reset UI
+                toggleBtn.innerHTML = '<i class="fas fa-play mr-1 sm:mr-2 text-sm"></i><span class="text-sm sm:text-base">Start Camera</span>';
+                toggleBtn.className = toggleBtn.className.replace('bg-red-600 hover:bg-red-700 active:bg-red-800', 'bg-purple-600 hover:bg-purple-700 active:bg-purple-800');
+
+                switchBtn.classList.add('hidden');
+                captureBtn.classList.add('hidden');
+
+                // Change indicator back to red (inactive)
+                liveIndicator.className = liveIndicator.className.replace('bg-green-500', 'bg-red-500');
+
+                cameraActive = false;
+                showToast('Camera stopped', 'info');
+            }
+        };
+
+        window.showLoading = function (show) {
+            const loadingIndicator = document.getElementById('cameraLoading');
+            if (show) {
+                loadingIndicator.classList.remove('hidden');
+            } else {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        // Global Camera State
+        var currentFacingMode = 'user'; // 'user' or 'environment'
+        var serverCamerasList = []; // List of server camera IDs
+        var currentServerCameraIndex = 0;
+
+        async function getAvailableCameras() {
+            try {
+                // 1. Get Server Cameras
+                serverCamerasList = [];
+                try {
+                    const response = await fetch('/superadmin/api/cameras');
+                    if (response.ok) {
+                        const data = await response.json();
+                        serverCamerasList = data.cameras || [];
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch server cameras", e);
+                }
+
+                // 2. Populate Dropdown
+                const select = document.getElementById('cameraSelect');
+                select.innerHTML = ''; // Clear existing
+
+                // Add Local Webcam Option
+                const webcamOption = document.createElement('option');
+                webcamOption.value = "";
+                webcamOption.text = "Local Webcam";
+                select.appendChild(webcamOption);
+
+                // Add server cameras
+                if (serverCamerasList.length > 0) {
+                    serverCamerasList.forEach(cam => {
+                        const option = document.createElement('option');
+                        option.value = cam._id;
+                        option.text = cam.name || `Camera ${cam._id}`;
+                        select.appendChild(option);
+                    });
+                }
+
+                // Show switch button if we have options (Server cams OR mobile cams)
+                // Note: We can't easily know if mobile has multiple cams without asking permission first,
+                // so we'll show it if we are on mobile (touch device) OR if we have server cams.
+                const switchBtn = document.getElementById('switchCamera');
+                const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+                if (serverCamerasList.length > 0 || isMobile) {
+                    switchBtn.classList.remove('hidden');
+                }
+
+                console.log('Server cameras:', serverCamerasList.length);
+
+            } catch (error) {
+                console.error('Error getting cameras:', error);
+                throw new Error('Failed to load cameras');
+            }
+        }
+
+        async function startWebcam(facingMode = 'user') {
+            try {
+                // 1. Check for Secure Context (Required for Camera)
+                if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                    const msg = "Camera access requires HTTPS or localhost. Please use a secure connection.";
+                    showToast(msg, "error");
+                    throw new Error(msg);
+                }
+
+                const videoFeed = document.getElementById('videoFeed');
+                const serverFeed = document.getElementById('serverFeed');
+                const canvas = document.getElementById('overlayCanvas');
+
+                // Hide server feed
+                serverFeed.classList.add('hidden');
+                serverFeed.src = "";
+
+                // Show video feed
+                videoFeed.classList.remove('hidden');
+
+                // Stop existing stream
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+
+                // 2. Try High Quality Constraints first
+                let stream = null;
+                try {
+                    console.log('Trying HD constraints...');
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: facingMode,
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
+                    });
+                } catch (hdError) {
+                    console.warn('HD constraints failed, trying basic...', hdError);
+
+                    // 3. Fallback to Basic Constraints
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia({
+                            video: { facingMode: facingMode }
+                        });
+                    } catch (basicError) {
+                        console.warn('Basic constraints failed, trying any video...', basicError);
+
+                        // 4. Last Resort: Any Video
+                        stream = await navigator.mediaDevices.getUserMedia({
+                            video: true
+                        });
+                    }
+                }
+
+                videoFeed.srcObject = stream;
+                currentStream = stream;
+                currentFacingMode = facingMode;
+
+                // Handle Mirroring
+                if (facingMode === 'user') {
+                    videoFeed.classList.add('mirror-mode');
+                    canvas.classList.add('mirror-mode');
+                } else {
+                    videoFeed.classList.remove('mirror-mode');
+                    canvas.classList.remove('mirror-mode');
+                }
+
+                return Promise.resolve();
+            } catch (err) {
+                console.error("Error starting webcam:", err);
+                let userMsg = "Error accessing webcam.";
+
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    userMsg = "Permission denied. Please allow camera access in your browser settings.";
+                } else if (err.name === 'NotFoundError') {
+                    userMsg = "No camera found on this device.";
+                } else if (err.name === 'NotReadableError') {
+                    userMsg = "Camera is already in use by another application.";
+                } else if (err.name === 'OverconstrainedError') {
+                    userMsg = "Camera does not support the requested resolution.";
+                }
+
+                showToast(userMsg, "error");
+                throw err;
+            }
+        }
+
+        async function startCamera() {
+            try {
+                const selectedCamera = document.getElementById('cameraSelect').value;
+                const videoFeed = document.getElementById('videoFeed');
+                const serverFeed = document.getElementById('serverFeed');
+
+                if (!selectedCamera) {
+                    showToast('No camera selected', 'error');
+                    return;
+                }
+
+                // --- SERVER CAMERA MODE ---
+                videoFeed.classList.add('hidden');
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                    currentStream = null;
+                }
+
+                serverFeed.classList.remove('hidden');
+                serverFeed.src = `/superadmin/camera_feed/${selectedCamera}`;
+
+                // We can't easily detect when MJPEG loads, so we just resolve
+                return Promise.resolve();
+
+            } catch (error) {
+                console.error('Error starting camera:', error);
+                throw new Error('Failed to start camera.');
+            }
+        }
+
+        function stopCamera() {
+            const videoFeed = document.getElementById('videoFeed');
+            const serverFeed = document.getElementById('serverFeed');
+
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+
+            videoFeed.srcObject = null;
+            serverFeed.src = "";
+            serverFeed.classList.add('hidden');
+            videoFeed.classList.add('hidden');
+        }
+        if (faceDetectionInterval) {
+            clearInterval(faceDetectionInterval);
+            faceDetectionInterval = null;
+        }
+        if (cameraStats.uptimeInterval) {
+            clearInterval(cameraStats.uptimeInterval);
+            cameraStats.uptimeInterval = null;
+        }
+
+        window.switchCamera = async function () {
+            showLoading(true);
+
+            try {
+                const cameraSelect = document.getElementById('cameraSelect');
+                const selectedValue = cameraSelect.value;
+
+                if (!selectedValue) {
+                    // --- WEBCAM MODE: Toggle Front/Back ---
+                    const newMode = currentFacingMode === 'user' ? 'environment' : 'user';
+                    await startWebcam(newMode);
+                    showToast(`Switched to ${newMode === 'user' ? 'Front' : 'Back'} Camera`, 'success');
+
+                } else {
+                    // --- SERVER MODE: Cycle Server Cameras ---
+                    if (serverCamerasList.length <= 1) {
+                        showToast('No other server cameras available', 'info');
+                        showLoading(false);
+                        return;
+                    }
+
+                    // Find current index
+                    let idx = serverCamerasList.findIndex(c => c._id === selectedValue);
+                    if (idx === -1) idx = 0;
+
+                    // Next index
+                    const nextIdx = (idx + 1) % serverCamerasList.length;
+                    const nextCam = serverCamerasList[nextIdx];
+
+                    // Update dropdown and start
+                    cameraSelect.value = nextCam._id;
+                    await startCamera();
+
+                    showToast(`Switched to ${nextCam.name}`, 'success');
+                }
+
+                if (cameraActive) {
+                    startFaceDetection();
+                }
+
+            } catch (e) {
+                console.error("Switch failed:", e);
+                showToast("Failed to switch camera", "error");
+            } finally {
+                showLoading(false);
+            }
+        };
+
+        window.startFaceDetection = function () {
+            let detectionCounter = 0;
+            let isProcessing = false;
+
+            // Optimize: Increase interval to 500ms to reduce lag
+            faceDetectionInterval = setInterval(async () => {
+                if (isProcessing) return;
+
+                detectionCounter++;
+
+                try {
+                    // Capture frame from video
+                    const video = document.getElementById('videoFeed');
+                    if (!video || video.videoWidth === 0) return;
+
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    // Optimize: Resize to max 640px width for faster transmission
+                    const MAX_WIDTH = 640;
+                    let width = video.videoWidth;
+                    let height = video.videoHeight;
+
+                    if (width > MAX_WIDTH) {
+                        height = Math.round(height * (MAX_WIDTH / width));
+                        width = MAX_WIDTH;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(video, 0, 0, width, height);
+
+                    console.log('📹 Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+                    console.log('🖼️ Canvas dimensions:', canvas.width, 'x', canvas.height);
+
+                    // Convert to blob with high quality
+                    canvas.toBlob(async (blob) => {
+                        if (isProcessing) return;
+
+                        // Check if blob is valid and of reasonable size
+                        if (!blob || blob.size < 1000) {
+                            console.warn('⚠️ Invalid or too small image blob:', blob?.size);
+                            return;
+                        }
+
+                        if (blob.size > 5 * 1024 * 1024) { // 5MB limit
+                            console.warn('⚠️ Image too large:', blob.size);
+                            return;
+                        }
+
+                        isProcessing = true;
+
+                        try {
+                            // Send frame to backend for face detection
+                            const formData = new FormData();
+                            formData.append('frame', blob, 'frame.jpg');
+
+                            console.log('📸 Sending frame to detection API...', blob.size, 'bytes');
+
+                            let response, result;
+                            let apiUsed = 'none';
+
+                            // Create AbortController with 5s timeout
+                            const controller = new AbortController();
+                            const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+                            try {
+                                console.log('🚀 Trying ultra detection API...');
+                                response = await fetch('/api/detect_face_ultra', {
+                                    method: 'POST',
+                                    body: formData,
+                                    signal: controller.signal
+                                });
+
+                                if (response.ok) {
+                                    result = await response.json();
+                                    apiUsed = 'ultra';
+                                    console.log('✅ Ultra API success:', result);
+                                } else {
+                                    throw new Error(`Ultra API failed: ${response.status}`);
+                                }
+                            } catch (ultraError) {
+                                console.log('🔄 Ultra API failed, trying public API:', ultraError.message);
+
+                                try {
+                                    response = await fetch('/api/detect_face_public', {
+                                        method: 'POST',
+                                        body: formData,
+                                        signal: controller.signal
+                                    });
+
+                                    if (response.ok) {
+                                        result = await response.json();
+                                        apiUsed = 'public';
+                                        console.log('✅ Public API success:', result);
+                                    } else {
+                                        throw new Error(`Public API failed: ${response.status}`);
+                                    }
+                                } catch (publicError) {
+                                    console.log('🔄 Public API failed, trying basic API:', publicError.message);
+
+                                    try {
+                                        response = await fetch('/api/detect_face', {
+                                            method: 'POST',
+                                            body: formData,
+                                            signal: controller.signal
+                                        });
+
+                                        if (response.ok) {
+                                            result = await response.json();
+                                            apiUsed = 'basic';
+                                            console.log('✅ Basic API success:', result);
+                                        } else {
+                                            throw new Error(`Basic API failed: ${response.status}`);
+                                        }
+                                    } catch (basicError) {
+                                        console.error('❌ All APIs failed:', basicError);
+
+                                        // Stop detection if all APIs are down
+                                        if (faceDetectionInterval) {
+                                            clearInterval(faceDetectionInterval);
+                                            faceDetectionInterval = null;
+                                            showToast('Face detection stopped - all APIs unavailable', 'error');
+                                        }
+
+                                        throw new Error('All face detection APIs are unavailable');
+                                    }
+                                }
+                            } finally {
+                                clearTimeout(timeoutId);
+                            }
+
+                            console.log(`Using ${apiUsed} API for detection`);
+                            console.log('API Response:', result);  // Log full response for debugging
+
+                            if (result && result.status === 'success') {
+                                const faceCount = result.faces_detected;
+                                console.log(`Faces detected: ${faceCount}`, result.faces);  // Log face details
+                                document.getElementById('faceCount').textContent = `${faceCount} face${faceCount !== 1 ? 's' : ''} detected`;
+
+                                // Update system badge with advanced processing info
+                                if (result.advanced_processing) {
+                                    const models = result.advanced_processing.models_used || [];
+                                    const badge = document.getElementById('systemBadge');
+                                    if (badge) {
+                                        badge.textContent = models.length > 1 ? `${models.length} Models Active` : 'Multi-Modal AI';
+                                    }
+                                }
+
+                                if (faceCount > 0 && result.faces && result.faces.length > 0) {
+                                    cameraStats.totalDetections++;
+                                    updateCameraStats();
+
+                                    // Process detected faces and draw bounding boxes
+                                    const overlayCanvas = document.getElementById('overlayCanvas');
+                                    if (overlayCanvas) {
+                                        // Ensure overlay matches video dimensions
+                                        if (overlayCanvas.width !== video.videoWidth || overlayCanvas.height !== video.videoHeight) {
+                                            overlayCanvas.width = video.videoWidth;
+                                            overlayCanvas.height = video.videoHeight;
+                                        }
+
+                                        // Call the centralized processing function ONCE
+                                        processDetectionResult(result, overlayCanvas.width, overlayCanvas.height);
+                                    }
+
+                                    const face = result.faces[0];
+
+                                    if (face.recognized) {
+                                        const confidence = (face.match_confidence * 100).toFixed(1);
+
+                                        document.getElementById('recognitionStatus').textContent = `✓ ${face.name} (${confidence}%)`;
+                                        document.getElementById('recognitionStatus').className = 'text-green-300 mt-1';
+
+                                        if (face.attendance_marked) {
+                                            showFaceDetectionAlert(`✓ ${face.name} - Attendance Marked!`, 'success');
+                                            showToast(`Attendance marked for ${face.name} (${confidence}% confidence)`, 'success');
+
+                                            cameraStats.successfulMatches++;
+                                            cameraStats.attendanceMarked++;
+                                            updateCameraStats();
+
+                                            // Add detection effect to video
+                                            video.classList.add('detection-active');
+                                            setTimeout(() => video.classList.remove('detection-active'), 2000);
+
+                                            // Refresh live attendance data
+                                            setTimeout(loadLiveAttendance, 1000);
+                                        } else if (face.already_marked) {
+                                            showFaceDetectionAlert(`${face.name} - Already marked today`, 'info');
+                                            showToast(`${face.name} attendance already marked today`, 'info');
+                                        }
+                                    } else {
+                                        document.getElementById('recognitionStatus').textContent = 'Face not recognized';
+                                        document.getElementById('recognitionStatus').className = 'text-red-300 mt-1';
+                                        showFaceDetectionAlert('Face not recognized - Please face the camera', 'error');
+                                    }
+
+                                    // Draw face bounding boxes on canvas overlay
+                                    drawFaceBoundingBoxes(result.faces);
+                                } else {
+                                    document.getElementById('recognitionStatus').textContent = 'No faces detected - point camera at face';
+                                    document.getElementById('recognitionStatus').className = 'text-blue-300 mt-1';
+                                    hideFaceDetectionAlert();
+                                    clearFaceBoundingBoxes();
+
+                                    // Show scanning indicator
+                                    console.log('No faces detected - scanning...');
+                                }
+                            } else {
+                                // API error, fall back to ready state
+                                document.getElementById('faceCount').textContent = '0 faces detected';
+                                document.getElementById('recognitionStatus').textContent = 'Ready for recognition';
+                                document.getElementById('recognitionStatus').className = 'text-green-300 mt-1';
+                                console.warn('Face detection API error:', result.message);
+                            }
+                        } catch (error) {
+                            console.error('🚨 Face detection request error:', error);
+
+                            // Handle different types of errors
+                            if (error.message.includes('502')) {
+                                document.getElementById('recognitionStatus').textContent = 'Server temporarily unavailable';
+                                document.getElementById('recognitionStatus').className = 'text-yellow-400 mt-0.5 sm:mt-1 text-xs sm:text-sm';
+                                showToast('Server temporarily unavailable - retrying...', 'error');
+                            } else if (error.message.includes('500')) {
+                                document.getElementById('recognitionStatus').textContent = 'Server error - check system';
+                                document.getElementById('recognitionStatus').className = 'text-red-400 mt-0.5 sm:mt-1 text-xs sm:text-sm';
+                                showToast('Server error detected - check system health', 'error');
+                            } else if (error.message.includes('All face detection APIs are unavailable')) {
+                                document.getElementById('recognitionStatus').textContent = 'All APIs unavailable';
+                                document.getElementById('recognitionStatus').className = 'text-red-500 mt-0.5 sm:mt-1 text-xs sm:text-sm';
+                                showToast('All face detection APIs are down!', 'error');
+                            } else {
+                                // Network or other issues - don't show persistent error to user
+                                console.warn('Network issue, continuing...');
+                                document.getElementById('recognitionStatus').textContent = 'Network issue - retrying';
+                                document.getElementById('recognitionStatus').className = 'text-orange-400 mt-0.5 sm:mt-1 text-xs sm:text-sm';
+                            }
+                        } finally {
+                            isProcessing = false;
+                        }
+                    }, 'image/jpeg', 0.8);
+
+                } catch (error) {
+                    console.error('Face detection error:', error);
+                    isProcessing = false;
+                }
+            }, 1000); // Check every second for smooth updates
+        };
+
+        // Function to draw face bounding boxes on overlay canvas
+        function drawFaceBoundingBoxes(faces) {
+            const canvas = document.getElementById('overlayCanvas');
+            const video = document.getElementById('videoFeed');
+
+            if (!canvas || !video) {
+                console.warn('⚠️ Canvas or video element not found for bounding boxes');
+                return;
+            }
+
+            // Ensure canvas matches video dimensions
+            const videoRect = video.getBoundingClientRect();
+            canvas.width = videoRect.width;
+            canvas.height = videoRect.height;
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Calculate scale factors based on actual video dimensions
+            const scaleX = canvas.width / video.videoWidth || 1;
+            const scaleY = canvas.height / video.videoHeight || 1;
+
+            console.log('📊 Drawing bounding boxes for', faces.length, 'faces');
+            console.log('📐 Canvas:', canvas.width, 'x', canvas.height, '| Video:', video.videoWidth, 'x', video.videoHeight);
+            console.log('📏 Scale factors:', scaleX.toFixed(2), 'x', scaleY.toFixed(2));
+
+            faces.forEach((face, index) => {
+                if (face.bbox) {
+                    const x = Math.round(face.bbox.x * scaleX);
+                    const y = Math.round(face.bbox.y * scaleY);
+                    const width = Math.round(face.bbox.width * scaleX);
+                    const height = Math.round(face.bbox.height * scaleY);
+
+                    console.log(`🎯 Face ${index + 1} bbox:`, { x, y, width, height }, 'recognized:', face.recognized);
+
+                    // Determine colors based on recognition status
+                    const isRecognized = face.recognized;
+                    const primaryColor = isRecognized ? '#10b981' : '#f59e0b'; // Green for recognized, yellow for unknown
+                    const shadowColor = isRecognized ? '#059669' : '#d97706';
+
+                    // Draw shadow/glow effect
+                    ctx.shadowColor = shadowColor;
+                    ctx.shadowBlur = 8;
+                    ctx.shadowOffsetX = 2;
+                    ctx.shadowOffsetY = 2;
+
+                    // Draw main bounding box
+                    ctx.strokeStyle = primaryColor;
+                    ctx.lineWidth = 4;
+                    ctx.strokeRect(x, y, width, height);
+
+                    // Draw corner brackets for better visibility
+                    const cornerLength = 20;
+                    ctx.lineWidth = 6;
+
+                    // Top-left corner
+                    ctx.beginPath();
+                    ctx.moveTo(x, y + cornerLength);
+                    ctx.lineTo(x, y);
+                    ctx.lineTo(x + cornerLength, y);
+                    ctx.stroke();
+
+                    // Top-right corner
+                    ctx.beginPath();
+                    ctx.moveTo(x + width - cornerLength, y);
+                    ctx.lineTo(x + width, y);
+                    ctx.lineTo(x + width, y + cornerLength);
+                    ctx.stroke();
+
+                    // Bottom-left corner
+                    ctx.beginPath();
+                    ctx.moveTo(x, y + height - cornerLength);
+                    ctx.lineTo(x, y + height);
+                    ctx.lineTo(x + cornerLength, y + height);
+                    ctx.stroke();
+
+                    // Bottom-right corner
+                    ctx.beginPath();
+                    ctx.moveTo(x + width - cornerLength, y + height);
+                    ctx.lineTo(x + width, y + height);
+                    ctx.lineTo(x + width, y + height - cornerLength);
+                    ctx.stroke();
+
+                    // Reset shadow
+                    ctx.shadowColor = 'transparent';
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 0;
+
+                    // Draw label
+                    const labelText = isRecognized
+                        ? `${face.name} (${(face.match_confidence * 100).toFixed(1)}%)`
+                        : 'Unknown Person';
+
+                    // Measure text for background
+                    ctx.font = 'bold 16px Arial';
+                    const textMetrics = ctx.measureText(labelText);
+                    const textWidth = textMetrics.width + 16;
+                    const textHeight = 28;
+
+                    // Position label (above box if space, otherwise below)
+                    let labelX = Math.max(0, Math.min(x, canvas.width - textWidth));
+                    let labelY = y > textHeight + 5 ? y - 5 : y + height + textHeight + 5;
+
+                    // Draw label background with gradient
+                    const gradient = ctx.createLinearGradient(labelX, labelY - textHeight, labelX, labelY);
+                    gradient.addColorStop(0, isRecognized ? '#10b981' : '#f59e0b');
+                    gradient.addColorStop(1, isRecognized ? '#059669' : '#d97706');
+
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(labelX, labelY - textHeight, textWidth, textHeight);
+
+                    // Draw label border
+                    ctx.strokeStyle = isRecognized ? '#047857' : '#b45309';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(labelX, labelY - textHeight, textWidth, textHeight);
+
+                    // Draw label text
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(labelText, labelX + textWidth / 2, labelY - 8);
+
+                    // Draw confidence bar if recognized
+                    if (isRecognized && face.match_confidence) {
+                        const barWidth = width * 0.8;
+                        const barHeight = 6;
+                        const barX = x + (width - barWidth) / 2;
+                        const barY = y + height + 8;
+
+                        // Background bar
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                        ctx.fillRect(barX, barY, barWidth, barHeight);
+
+                        // Confidence bar
+                        const confidenceGradient = ctx.createLinearGradient(barX, barY, barX + confidenceWidth, barY);
+                        confidenceGradient.addColorStop(0, '#10b981');
+                        confidenceGradient.addColorStop(1, '#34d399');
+
+                        ctx.fillStyle = confidenceGradient;
+                        ctx.fillRect(barX, barY, confidenceWidth, barHeight);
+
+                        // Border for confidence bar
+                        ctx.strokeStyle = '#059669';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(barX, barY, barWidth, barHeight);
+                    }
+
+                    // Reset text align
+                    ctx.textAlign = 'start';
+                }
+            });
+
+            console.log('Bounding boxes drawn successfully');
+        }
+
+        function clearFaceBoundingBoxes() {
+            const canvas = document.getElementById('overlayCanvas');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function showFaceDetectionAlert(message, type) {
+            const alert = document.getElementById('faceDetectionAlert');
+            const messageSpan = document.getElementById('detectionMessage');
+
+            messageSpan.textContent = message;
+            alert.classList.remove('hidden');
+
+            // Change color based on type
+            if (type === 'success') {
+                alert.className = alert.className.replace(/from-\w+-500 to-\w+-600/, 'from-green-500 to-emerald-600');
+            } else if (type === 'error') {
+                alert.className = alert.className.replace(/from-\w+-500 to-\w+-600/, 'from-red-500 to-pink-600');
+            } else {
+                alert.className = alert.className.replace(/from-\w+-500 to-\w+-600/, 'from-blue-500 to-purple-600');
+            }
+        }
+
+        function hideFaceDetectionAlert() {
+            const alert = document.getElementById('faceDetectionAlert');
+            if (alert) {
+                alert.classList.add('hidden');
+            }
+        }
+
+        function startCameraStats() {
+            cameraStats.startTime = Date.now();
+            cameraStats.totalDetections = 0;
+            cameraStats.successfulMatches = 0;
+            cameraStats.attendanceMarked = 0;
+
+            // Update uptime every second
+            cameraStats.uptimeInterval = setInterval(() => {
+                const uptime = Date.now() - cameraStats.startTime;
+                const minutes = Math.floor(uptime / 60000);
+                const seconds = Math.floor((uptime % 60000) / 1000);
+                document.getElementById('cameraUptime').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function updateCameraStats() {
+            document.getElementById('totalDetections').textContent = cameraStats.totalDetections;
+            document.getElementById('successfulMatches').textContent = cameraStats.successfulMatches;
+            document.getElementById('attendanceMarked').textContent = cameraStats.attendanceMarked;
+        }
+
+        window.capturePhoto = async function () {
+            const video = document.getElementById('videoFeed');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+
+            canvas.toBlob(async (blob) => {
+                try {
+                    showToast('Capturing and analyzing photo...', 'info');
+
+                    // First try face detection API
+                    const formData = new FormData();
+                    formData.append('frame', blob, 'capture.jpg');
+
+                    const detectResponse = await fetch('/api/detect_face', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const detectResult = await detectResponse.json();
+
+                    if (detectResult.status === 'success' && detectResult.faces_detected > 0) {
+                        const face = detectResult.faces[0];
+
+                        if (face.recognized) {
+                            const confidence = (face.match_confidence * 100).toFixed(1);
+                            showToast(`✓ Person Identified: ${face.name} (${confidence}% confidence)`, 'success');
+
+                            if (face.attendance_marked) {
+                                showToast(`Attendance marked for ${face.name}!`, 'success');
+                                cameraStats.attendanceMarked++;
+                                updateCameraStats();
+                                loadLiveAttendance();
+                            } else if (face.already_marked) {
+                                showToast(`${face.name} attendance already marked today`, 'info');
+                            }
+                        } else {
+                            showToast('Face detected but not recognized in database', 'error');
+                        }
+                    } else {
+                        showToast('No faces detected in captured photo', 'error');
+                    }
+
+                    // Also run 3D analysis for additional info
+                    const analysisFormData = new FormData();
+                    analysisFormData.append('file', blob, 'capture.jpg');
+
+                    const analysisResponse = await fetch('/api/analyze_3d_face', {
+                        method: 'POST',
+                        body: analysisFormData
+                    });
+
+                    const analysisResult = await analysisResponse.json();
+
+                    if (analysisResult.status === 'success') {
+                        showToast(`3D Analysis - Quality: ${(analysisResult.quality_score * 100).toFixed(1)}% | Landmarks: ${analysisResult.landmarks_count}`, 'info');
+                    }
+
+                } catch (error) {
+                    console.error('Capture photo error:', error);
+                    showToast('Error during photo analysis: ' + error.message, 'error');
+                }
+            }, 'image/jpeg', 0.9);
+        };
+
+        window.loadStats = async function () {
+            // Fallback to HTTP if socket not connected
+            if (socket.connected) {
+                socket.emit('request_stats');
+            } else {
+                try {
+                    const response = await fetch('/superadmin/api/stats');
+                    const data = await response.json();
+                    if (response.ok) {
+                        updateDashboardStats(data);
+                    }
+                } catch (error) {
+                    console.error('Error loading stats:', error);
+                    showToast('Failed to load statistics', 'error');
+                }
+            }
+        };
+
+        window.loadAttendanceChart = async function () {
+            // Prevent concurrent calls
+            if (isLoadingChart) {
+                console.log('Chart already loading, skipping...');
+                return;
+            }
+
+            isLoadingChart = true;
+
+            try {
+                const response = await fetch('/api/superadmin/attendance/stats?days=7');
+                const data = await response.json();
+
+                if (response.ok && data.daily_attendance) {
+                    const ctx = document.getElementById('attendanceChart').getContext('2d');
+
+                    // Destroy existing chart instance to prevent memory leaks and infinite loops
+                    if (attendanceChartInstance) {
+                        console.log('Destroying previous chart instance...');
+                        attendanceChartInstance.destroy();
+                        attendanceChartInstance = null;
+                    }
+
+                    attendanceChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.daily_attendance.map(d => new Date(d.date).toLocaleDateString()),
+                            datasets: [{
+                                label: 'Daily Attendance',
+                                data: data.daily_attendance.map(d => d.count),
+                                borderColor: 'rgb(59, 130, 246)',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                    console.log('Attendance chart loaded successfully');
+                }
+            } catch (error) {
+                console.error('Error loading attendance chart:', error);
+            } finally {
+                isLoadingChart = false;
+            }
+        }
+
+        // loadRecentActivity is defined correctly later in the file
+
+
+        // Add missing loadLiveAttendance function
+        window.loadLiveAttendance = async function () {
+            try {
+                const response = await fetch('/superadmin/attendance/live?limit=10');
+                const data = await response.json();
+
+                if (response.ok && data.attendance && data.attendance.length > 0) {
+                    console.log('Live attendance loaded:', data.attendance.length, 'records');
+                    showToast(`Loaded ${data.attendance.length} recent attendance records`, 'success');
+                } else {
+                    console.log('No live attendance data available');
+                    showToast('No recent attendance records found', 'info');
+                }
+            } catch (error) {
+                console.error('Error loading live attendance:', error);
+                showToast('Failed to load live attendance data', 'error');
+            }
+        };
+
+        window.toggleSidebar = function () {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        };
+
+        window.showToast = function (message, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type || 'info'}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        };
+
+        // Test Detection API Function
+        window.testDetectionAPI = async function () {
+            showToast('Testing face detection APIs...', 'info');
+            console.log('🧪 Starting API test...');
+
+            // Create a test canvas with a simple image
+            const testCanvas = document.createElement('canvas');
+            testCanvas.width = 640;
+            testCanvas.height = 480;
+            const ctx = testCanvas.getContext('2d');
+
+            // Draw a simple test pattern
+            ctx.fillStyle = '#333333';
+            ctx.fillRect(0, 0, testCanvas.width, testCanvas.height);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '48px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Face Detection Test', testCanvas.width / 2, testCanvas.height / 2);
+
+            testCanvas.toBlob(async (testBlob) => {
+                const formData = new FormData();
+                formData.append('frame', testBlob, 'test.jpg');
+
+                console.log(' Test image size:', testBlob.size, 'bytes');
+
+                // Test all APIs
+                const apis = [
+                    { name: 'Ultra', url: '/api/detect_face_ultra' },
+                    { name: 'Public', url: '/api/detect_face_public' },
+                    { name: 'Basic', url: '/api/detect_face' },
+                    { name: 'Simple', url: '/api/detect_face_simple' }
+                ];
+
+                for (const api of apis) {
+                    try {
+                        console.log(`🧪 Testing ${api.name} API...`);
+                        const response = await fetch(api.url, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            console.log(`✅ ${api.name} API working:`, result);
+                            showToast(`${api.name} API: ${result.status} - ${result.message || 'OK'}`, 'success');
+                        } else {
+                            console.log(`❌ ${api.name} API error:`, response.status, result);
+                            showToast(`${api.name} API: Error ${response.status}`, 'error');
+                        }
+                    } catch (error) {
+                        console.log(`💥 ${api.name} API failed:`, error);
+                        showToast(`${api.name} API: Network error`, 'error');
+                    }
+
+                    // Wait between API calls
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+
+                showToast('API testing complete - check console for details', 'info');
+            }, 'image/jpeg', 0.8);
+        };
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function (event) {
+            const sidebar = document.getElementById('sidebar');
+            const menuToggle = document.getElementById('menuToggle');
+            const overlay = document.getElementById('sidebarOverlay');
+
+            if (window.innerWidth < 1024 &&
+                !sidebar.contains(event.target) &&
+                !menuToggle.contains(event.target) &&
+                sidebar.classList.contains('active')) {
+                toggleSidebar();
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function () {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+
+            if (window.innerWidth >= 1024) {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            }
+        });
+
+        // Function availability check - Debug helper
+        window.addEventListener('load', function () {
+            console.log('Dashboard v2.0 Loaded Successfully!');
+            console.log('Functions available:', {
+                toggleSidebar: typeof toggleSidebar,
+                toggleCameraFeed: typeof toggleCameraFeed,
+                switchCamera: typeof switchCamera,
+                capturePhoto: typeof capturePhoto,
+                loadLiveAttendance: typeof loadLiveAttendance,
+                showToast: typeof showToast
+            });
+
+            // Test toast notification
+            setTimeout(() => {
+                showToast('Dashboard loaded successfully!', 'success');
+            }, 1000);
+        });
+
+        window.toggleSidebar = toggleSidebar;
+        window.toggleCameraFeed = toggleCameraFeed;
+        window.switchCamera = switchCamera;
+        window.capturePhoto = capturePhoto;
+        window.loadLiveAttendance = loadLiveAttendance;
+        window.showToast = showToast;
+
+        // Add missing functions for dashboard initialization
+        window.loadStats = async function () {
+            // Stats are now loaded via WebSocket, this is a no-op
+            console.log('loadStats called - using WebSocket for updates');
+        };
+
+        window.loadRecentActivity = async function () {
+            try {
+                const response = await fetch('/superadmin/api/recent-activity');
+                const data = await response.json();
+
+                const tbody = document.getElementById('recent-activity');
+                if (!tbody) return;
+
+                if (response.ok && data.activities && data.activities.length > 0) {
+                    tbody.innerHTML = data.activities.map(activity => `
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                ${new Date(activity.timestamp).toLocaleString()}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                ${activity.action}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                ${activity.user || 'System'}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${activity.status === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }">
+                                    ${activity.status}
+                                </span>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No recent activity</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading recent activity:', error);
+            }
+        };
+
+    </script>
+    <!-- Particle System Script -->
+    <script>
+        const canvas = document.getElementById('particleCanvas');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            let animationId;
+
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            const mouse = {
+                x: null,
+                y: null,
+                radius: 150
+            }
+
+            window.addEventListener('mousemove', function (event) {
+                mouse.x = event.x;
+                mouse.y = event.y;
+            });
+
+            class Particle {
+                constructor(x, y, directionX, directionY, size, color) {
+                    this.x = x;
+                    this.y = y;
+                    this.directionX = directionX;
+                    this.directionY = directionY;
+                    this.size = size;
+                    this.color = color;
+                }
+
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+                    ctx.fillStyle = '#8b5cf6'; // Purple-500
+                    ctx.fill();
+                }
+
+                update() {
+                    if (this.x > canvas.width || this.x < 0) {
+                        this.directionX = -this.directionX;
+                    }
+                    if (this.y > canvas.height || this.y < 0) {
+                        this.directionY = -this.directionY;
+                    }
+
+                    // Check collision detection - mouse position / particle position
+                    let dx = mouse.x - this.x;
+                    let dy = mouse.y - this.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < mouse.radius + this.size) {
+                        if (mouse.x < this.x && this.x < canvas.width - this.size * 10) {
+                            this.x += 3; // Move away from mouse
+                        }
+                        if (mouse.x > this.x && this.x > this.size * 10) {
+                            this.x -= 3;
+                        }
+                        if (mouse.y < this.y && this.y < canvas.height - this.size * 10) {
+                            this.y += 3;
+                        }
+                        if (mouse.y > this.y && this.y > this.size * 10) {
+                            this.y -= 3;
+                        }
+                    }
+
+                    this.x += this.directionX;
+                    this.y += this.directionY;
+                    this.draw();
+                }
+            }
+
+            function init() {
+                particles = [];
+                let numberOfParticles = (canvas.height * canvas.width) / 9000;
+                for (let i = 0; i < numberOfParticles; i++) {
+                    let size = (Math.random() * 3) + 1;
+                    let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
+                    let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
+                    let directionX = (Math.random() * 2) - 1;
+                    let directionY = (Math.random() * 2) - 1;
+                    let color = '#8b5cf6';
+
+                    particles.push(new Particle(x, y, directionX, directionY, size, color));
+                }
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                ctx.clearRect(0, 0, innerWidth, innerHeight);
+
+                for (let i = 0; i < particles.length; i++) {
+                    particles[i].update();
+                }
+                connect();
+            }
+
+            function connect() {
+                let opacityValue = 1;
+                for (let a = 0; a < particles.length; a++) {
+                    for (let b = a; b < particles.length; b++) {
+                        let distance = ((particles[a].x - particles[b].x) * (particles[a].x - particles[b].x))
+                            + ((particles[a].y - particles[b].y) * (particles[a].y - particles[b].y));
+                        if (distance < (canvas.width / 7) * (canvas.height / 7)) {
+                            opacityValue = 1 - (distance / 20000);
+                            ctx.strokeStyle = 'rgba(139, 92, 246,' + opacityValue + ')'; // Purple lines
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.moveTo(particles[a].x, particles[a].y);
+                            ctx.lineTo(particles[b].x, particles[b].y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            init();
+            animate();
+        } // End of if (canvas)
+
+        // ============================================
+        // Secret Superadmin Management
+        // ============================================
+        let secretClickCount = 0;
+        let secretClickTimer = null;
+
+        document.getElementById('secretTrigger').addEventListener('click', function () {
+            secretClickCount++;
+
+            // Reset timer
+            clearTimeout(secretClickTimer);
+
+            if (secretClickCount >= 5) {
+                // Trigger secret modal
+                document.getElementById('secretCodeModal').classList.remove('hidden');
+                document.getElementById('secretCodeModal').classList.add('flex');
+                document.getElementById('secretCodeInput').focus();
+                secretClickCount = 0;
+            } else {
+                // Reset count after 2 seconds if not reached 5
+                secretClickTimer = setTimeout(() => {
+                    secretClickCount = 0;
+                }, 2000);
+            }
+        });
+
+        // Listen for Enter key on secret code input
+        document.getElementById('secretCodeInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                verifySecretCode();
+            }
+        });
+
+        function closeSecretModal() {
+            document.getElementById('secretCodeModal').classList.remove('flex');
+            document.getElementById('secretCodeModal').classList.add('hidden');
+            document.getElementById('secretCodeInput').value = '';
+        }
+
+        async function verifySecretCode() {
+            const code = document.getElementById('secretCodeInput').value;
+
+            if (!code) {
+                showToast('Please enter a code', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/superadmin/api/verify_secret', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    closeSecretModal();
+                    openSuperadminManagement();
+                } else {
+                    showToast(data.msg || 'Invalid code', 'error');
+                    document.getElementById('secretCodeInput').value = '';
+                }
+            } catch (error) {
+                console.error('Error verifying code:', error);
+                showToast('Verification failed', 'error');
+            }
+        }
+
+        function openSuperadminManagement() {
+            document.getElementById('superadminManagementModal').classList.remove('hidden');
+            document.getElementById('superadminManagementModal').classList.add('flex');
+            loadSuperadmins();
+        }
+
+        function closeSuperadminModal() {
+            document.getElementById('superadminManagementModal').classList.remove('flex');
+            document.getElementById('superadminManagementModal').classList.add('hidden');
+            hideAddSuperadminForm();
+        }
+
+        function showAddSuperadminForm() {
+            document.getElementById('addSuperadminForm').classList.remove('hidden');
+        }
+
+        function hideAddSuperadminForm() {
+            document.getElementById('addSuperadminForm').classList.add('hidden');
+            document.getElementById('newSuperadminName').value = '';
+            document.getElementById('newSuperadminEmail').value = '';
+            document.getElementById('newSuperadminPassword').value = '';
+        }
+
+        async function loadSuperadmins() {
+            try {
+                const response = await fetch('/superadmin/api/superadmins');
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    renderSuperadmins(data.superadmins);
+                } else {
+                    showToast('Failed to load superadmins', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading superadmins:', error);
+                showToast('Failed to load superadmins', 'error');
+            }
+        }
+
+        function renderSuperadmins(superadmins) {
+            const tbody = document.getElementById('superadminsList');
+
+            if (!superadmins || superadmins.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-6 py-8 text-center text-gray-500">
+                            <i class="fas fa-user-shield text-4xl text-gray-300 mb-2"></i>
+                            <p>No superadmins found</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = superadmins.map(sa => `
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-user-shield text-indigo-600 text-sm"></i>
+                            </div>
+                            <span class="font-semibold text-gray-800">${sa.name || 'N/A'}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-gray-600">${sa.email || sa._id}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold ${sa.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                            ${sa.status === 'active' ? '✓ Active' : '⊗ Blocked'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex gap-2">
+                            ${sa.status === 'active' ? `
+                                <button onclick="toggleSuperadminStatus('${sa._id}', 'blocked')" class="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-all" title="Block">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                            ` : `
+                                <button onclick="toggleSuperadminStatus('${sa._id}', 'active')" class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all" title="Unblock">
+                                    <i class="fas fa-check-circle"></i>
+                                </button>
+                            `}
+                            <button onclick="deleteSuperadmin('${sa._id}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function createSuperadmin() {
+            const name = document.getElementById('newSuperadminName').value.trim();
+            const email = document.getElementById('newSuperadminEmail').value.trim();
+            const password = document.getElementById('newSuperadminPassword').value;
+
+            if (!name || !email || !password) {
+                showToast('All fields are required', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/superadmin/api/superadmins', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    showToast('Superadmin created successfully', 'success');
+                    hideAddSuperadminForm();
+                    loadSuperadmins();
+                } else {
+                    showToast(data.msg || 'Failed to create superadmin', 'error');
+                }
+            } catch (error) {
+                console.error('Error creating superadmin:', error);
+                showToast('Failed to create superadmin', 'error');
+            }
+        }
+
+        async function toggleSuperadminStatus(id, newStatus) {
+            const action = newStatus === 'blocked' ? 'block' : 'unblock';
+            if (!confirm(`Are you sure you want to ${action} this superadmin?`)) return;
+
+            try {
+                const response = await fetch(`/superadmin/api/superadmins/${id}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    showToast(`Superadmin ${action}ed successfully`, 'success');
+                    loadSuperadmins();
+                } else {
+                    showToast(data.msg || `Failed to ${action}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error updating status:', error);
+                showToast(`Failed to ${action}`, 'error');
+            }
+        }
+
+        async function deleteSuperadmin(id) {
+            if (!confirm('Are you sure you want to delete this superadmin? This action cannot be undone.')) return;
+
+            try {
+                const response = await fetch(`/superadmin/api/superadmins/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    showToast('Superadmin deleted successfully', 'success');
+                    loadSuperadmins();
+                } else {
+                    showToast(data.msg || 'Failed to delete', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting superadmin:', error);
+                showToast('Failed to delete', 'error');
+            }
+        }
+
+    </script>
+</body>
+
+</html>

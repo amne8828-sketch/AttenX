@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Camera Feed</title>
+    <style>
+        body {
+            margin: 0;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+            font-family: sans-serif;
+        }
+
+        video {
+            max-width: 100%;
+            max-height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <video id="video" autoplay playsinline controls muted></video>
+    <script>
+        // Connect to Go2RTC WebRTC stream
+        const video = document.getElementById('video');
+        const streamId = "{{ camera_id }}";
+        const host = window.location.hostname;
+
+        // We assume Go2RTC is exposed on port 1984 (API) or we proxy it.
+        // Since we are running in Docker, the browser needs to reach Go2RTC.
+        // If running locally, localhost:1984 works.
+        // In production, you'd proxy /go2rtc to the container.
+        // For now, let's assume direct access or proxy via Flask if needed.
+
+        // Simple MSE approach for better compatibility than raw WebRTC sometimes
+        const url = `ws://${host}:1984/api/ws?src=${streamId}`;
+
+        // Actually, let's use the Go2RTC embedded player logic or just an iframe to the stream
+        // But since we want a clean player, let's try a simple MSE connection if possible,
+        // or just fallback to MJPEG if this is too complex for now.
+
+        // EASIEST: Iframe to Go2RTC's built-in player
+        window.location.href = `http://${host}:1984/webrtc.html?src=${streamId}`;
+    </script>
+</body>
+
+</html>

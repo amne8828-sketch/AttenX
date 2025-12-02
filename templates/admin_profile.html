@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Profile - Smart Attendance</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --primary: #4e73df;
+            --text: #5a5c69;
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.9);
+            --input-bg: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Nunito', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            overflow-x: hidden;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* 3D Background Canvas */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: auto;
+        }
+
+        #instruction-overlay {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: rgba(0, 0, 0, 0.4);
+            font-size: 0.8rem;
+            z-index: 1;
+            pointer-events: none;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.5);
+            padding: 5px 10px;
+            border-radius: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Layout */
+        .container {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: linear-gradient(180deg, #4e73df 10%, #224abe 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            pointer-events: auto;
+            box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            z-index: 100;
+        }
+
+        .sidebar-brand {
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: 0.2s;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: 700;
+        }
+
+        .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 250px;
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            transition: margin-left 0.3s ease;
+        }
+
+        /* Profile Card */
+        .profile-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            pointer-events: auto;
+            margin-left: 5%;
+            transition: all 0.3s ease;
+        }
+
+        .profile-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .avatar-container {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            padding: 3px;
+            background: white;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .avatar-container img,
+        .avatar-container div {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+            color: white;
+            background: var(--primary);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #5a5c69;
+        }
+
+        .form-control {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid #d1d3e2;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            color: #6e707e;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+        }
+
+        .form-control[readonly] {
+            background-color: #eaecf4;
+            cursor: not-allowed;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2e59d9;
+        }
+
+        .btn-secondary {
+            background: #858796;
+            color: white;
+            margin-left: 1rem;
+        }
+
+        .btn-secondary:hover {
+            background: #717384;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: none;
+            font-weight: 600;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Mobile Toggle */
+        .mobile-toggle {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 200;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+                justify-content: center;
+                padding: 1rem;
+            }
+
+            .profile-card {
+                margin-left: 0;
+                max-width: 100%;
+                padding: 1.5rem;
+                margin-top: 60px;
+            }
+
+            /* Space for toggle */
+            .mobile-toggle {
+                display: block;
+            }
+
+            /* Adjust 3D canvas interaction for mobile */
+            #instruction-overlay {
+                bottom: 10px;
+                right: 10px;
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Mobile Toggle -->
+    <button class="mobile-toggle" onclick="document.querySelector('.sidebar').classList.toggle('active')">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- 3D Background -->
+    <div id="bg-canvas"></div>
+    <div id="instruction-overlay">Hover Watch for Digital • Double Click for Calendar</div>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-brand">
+                <i class="fas fa-user-shield"></i> Admin Panel
+            </div>
+            <a href="/admin/dashboard" class="nav-link">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </a>
+            <a href="/reg" class="nav-link">
+                <i class="fas fa-user-plus"></i> Enroll User
+            </a>
+            <a href="/admin/profile" class="nav-link active">
+                <i class="fas fa-user"></i> Profile
+            </a>
+            <a href="/logout" class="nav-link">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="profile-card">
+                <div id="alertMsg" class="alert"></div>
+
+                <div class="profile-header">
+                    <div class="avatar-container">
+                        {% if profile.profile_image %}
+                        <img src="data:image/jpeg;base64,{{ profile.profile_image }}" alt="Profile">
+                        {% else %}
+                        <div>{{ profile.name[0].upper() }}</div>
+                        {% endif %}
+                    </div>
+                    <h2 style="color: #5a5c69;">{{ profile.name }}</h2>
+                    <span style="color: var(--primary); font-weight: 600;">{{ profile.role }}</span>
+                </div>
+
+                <form id="profileForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" class="form-control" name="name" value="{{ profile.name }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-control" name="email" value="{{ profile.email }}" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Update Photo</label>
+                        <input type="file" class="form-control" name="profile_image" accept="image/*">
+                    </div>
+
+                    <div style="display: flex; justify-content: center; margin-top: 2rem; flex-wrap: wrap; gap: 1rem;">
+                        <button type="submit" class="btn btn-primary" id="saveBtn">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <a href="/admin/dashboard" class="btn btn-secondary" style="margin-left: 0;">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 3D Background Setup ---
+        const container = document.getElementById('bg-canvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(10, 20, 10);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        // --- Textures ---
+        function addNoise(ctx, width, height) {
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const noise = (Math.random() - 0.5) * 20;
+                data[i] = Math.min(255, Math.max(0, data[i] + noise));
+                data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + noise));
+                data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + noise));
+            }
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function createAnalogFace() {
+            const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            // Royal Blue Sunburst Background
+            const grad = ctx.createRadialGradient(256, 256, 0, 256, 256, 512);
+            grad.addColorStop(0, '#0f2027');
+            grad.addColorStop(0.5, '#203a43');
+            grad.addColorStop(1, '#2c5364');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 512, 512);
+
+            addNoise(ctx, 512, 512); // Subtle texture
+
+            // Gold Outer Rim
+            ctx.beginPath(); ctx.arc(256, 256, 250, 0, Math.PI * 2);
+            ctx.lineWidth = 20; ctx.strokeStyle = '#d4af37'; ctx.stroke();
+            ctx.beginPath(); ctx.arc(256, 256, 240, 0, Math.PI * 2);
+            ctx.lineWidth = 2; ctx.strokeStyle = '#f9d423'; ctx.stroke();
+
+            // Roman Numerals
+            ctx.translate(256, 256);
+            ctx.fillStyle = '#f9d423'; // Gold text
+            ctx.font = 'bold 50px "Times New Roman", serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 5;
+
+            const romans = ['XII', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+            for (let i = 0; i < 12; i++) {
+                const theta = (i * 30 - 90) * (Math.PI / 180);
+                const x = Math.cos(theta) * 190;
+                const y = Math.sin(theta) * 190;
+                ctx.fillText(romans[i], x, y);
+            }
+
+            // Minute Ticks
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 60; i++) {
+                if (i % 5 !== 0) {
+                    const theta = (i * 6 - 90) * (Math.PI / 180);
+                    const x1 = Math.cos(theta) * 220;
+                    const y1 = Math.sin(theta) * 220;
+                    const x2 = Math.cos(theta) * 230;
+                    const y2 = Math.sin(theta) * 230;
+                    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+                }
+            }
+
+            // Branding
+            ctx.font = '16px "Nunito", sans-serif';
+            ctx.fillStyle = '#d4af37';
+            ctx.fillText('PREMIUM', 0, -80);
+            ctx.font = '12px "Nunito", sans-serif';
+            ctx.fillText('CHRONOGRAPH', 0, 80);
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createDigitalFace() {
+            const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            // Electric Dark Background
+            const grad = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+            grad.addColorStop(0, '#1a2a3a');
+            grad.addColorStop(1, '#000000');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Static Spark/Circuit Lines
+            ctx.strokeStyle = '#00ffcc';
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = 0.2;
+            for (let i = 0; i < 30; i++) {
+                ctx.beginPath();
+                ctx.moveTo(Math.random() * 512, Math.random() * 512);
+                ctx.lineTo(Math.random() * 512, Math.random() * 512);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1.0;
+
+            // Glowing Rim
+            ctx.beginPath(); ctx.arc(256, 256, 240, 0, Math.PI * 2);
+            ctx.lineWidth = 10; ctx.strokeStyle = '#00ffcc'; ctx.shadowBlur = 20; ctx.shadowColor = '#00ffcc'; ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createCalendarTexture() {
+            const canvas = document.createElement('canvas'); canvas.width = 1024; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 1024, 512);
+
+            ctx.fillStyle = "rgba(0,0,0,0.03)";
+            for (let i = 0; i < 1024; i += 2) { ctx.fillRect(i, 0, 1, 512); }
+            for (let i = 0; i < 512; i += 2) { ctx.fillRect(0, i, 1024, 1); }
+
+            const now = new Date();
+            const month = now.toLocaleString('default', { month: 'long' });
+            const year = now.getFullYear();
+            ctx.fillStyle = '#4e73df'; ctx.fillRect(0, 0, 1024, 100);
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 60px Nunito'; ctx.textAlign = 'center';
+            ctx.fillText(`${month} ${year}`, 512, 70);
+            ctx.fillStyle = '#5a5c69'; ctx.font = '30px Nunito';
+            let x = 100, y = 150;
+            for (let i = 1; i <= 31; i++) {
+                ctx.fillText(i, x, y); x += 140;
+                if (i % 7 === 0) { x = 100; y += 60; }
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const analogTexture = createAnalogFace();
+        const digitalTexture = createDigitalFace();
+        const calendarTexture = createCalendarTexture();
+
+        // --- Objects ---
+        const watchGroup = new THREE.Group();
+        scene.add(watchGroup);
+
+        // Watch
+        const geometry = new THREE.CylinderGeometry(2.5, 2.5, 0.4, 64);
+        const material = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, metalness: 0.7, roughness: 0.2 });
+        const watchBody = new THREE.Mesh(geometry, material);
+        watchBody.rotation.x = Math.PI / 2;
+        watchBody.castShadow = true;
+        watchGroup.add(watchBody);
+
+        const faceGeo = new THREE.CircleGeometry(2.4, 64);
+        const faceMat = new THREE.MeshBasicMaterial({ map: analogTexture });
+        const watchFace = new THREE.Mesh(faceGeo, faceMat);
+        watchFace.position.z = 0.21;
+        watchGroup.add(watchFace);
+
+        // Hands - Improved visibility and pivot
+        const handMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.1, roughness: 0.1 }); // White for contrast
+
+        // Hour Hand
+        const hourGeo = new THREE.BoxGeometry(0.2, 1.6, 0.05);
+        hourGeo.translate(0, 0.6, 0); // Fix pivot to bottom
+        const hourHand = new THREE.Mesh(hourGeo, handMat);
+        hourHand.position.z = 0.25;
+        watchGroup.add(hourHand);
+
+        // Minute Hand
+        const minGeo = new THREE.BoxGeometry(0.12, 2.4, 0.05);
+        minGeo.translate(0, 0.9, 0); // Fix pivot
+        const minuteHand = new THREE.Mesh(minGeo, handMat);
+        minuteHand.position.z = 0.27;
+        watchGroup.add(minuteHand);
+
+        // Second Hand
+        const secGeo = new THREE.BoxGeometry(0.04, 2.8, 0.05);
+        secGeo.translate(0, 1.0, 0); // Fix pivot
+        const secondHand = new THREE.Mesh(secGeo, new THREE.MeshStandardMaterial({ color: 0xe74c3c, emissive: 0x550000 }));
+        secondHand.position.z = 0.29;
+        watchGroup.add(secondHand);
+
+        // Center Cap
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 32), new THREE.MeshStandardMaterial({ color: 0xd4af37 }));
+        cap.rotation.x = Math.PI / 2;
+        cap.position.z = 0.32;
+        watchGroup.add(cap);
+
+        const digitalCanvas = document.createElement('canvas');
+        digitalCanvas.width = 512; digitalCanvas.height = 256;
+        const dCtx = digitalCanvas.getContext('2d');
+        const digitalTextTexture = new THREE.CanvasTexture(digitalCanvas);
+        const digitalPlane = new THREE.Mesh(new THREE.PlaneGeometry(3, 1.5), new THREE.MeshBasicMaterial({ map: digitalTextTexture, transparent: true, opacity: 0 }));
+        digitalPlane.position.z = 0.35;
+        watchGroup.add(digitalPlane);
+
+        // Calendar with Cloth Simulation
+        const calendarGroup = new THREE.Group();
+        calendarGroup.visible = false;
+        scene.add(calendarGroup);
+
+        const calendarGeo = new THREE.PlaneGeometry(8, 5, 32, 32);
+        const calendarMat = new THREE.MeshStandardMaterial({
+            map: calendarTexture,
+            side: THREE.DoubleSide,
+            roughness: 0.8,
+            bumpMap: calendarTexture,
+            bumpScale: 0.02
+        });
+        const calendarMesh = new THREE.Mesh(calendarGeo, calendarMat);
+        calendarMesh.castShadow = true;
+        calendarGroup.add(calendarMesh);
+
+        // --- Positioning & Mobile Logic ---
+        function updateLayout() {
+            const isMobile = window.innerWidth <= 992;
+
+            if (isMobile) {
+                // Mobile: Move to top center, slightly behind
+                watchGroup.position.set(0, 4, -5);
+                calendarGroup.position.set(0, 4, -5);
+                camera.position.z = 15;
+            } else {
+                // Desktop: Right side
+                watchGroup.position.set(5, 0, 0);
+                calendarGroup.position.set(5, 0, 0);
+                camera.position.z = 12;
+            }
+        }
+        updateLayout();
+
+        // --- Animation & Interaction ---
+        let isHovering = false;
+        let isCalendarView = false;
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        // Target rotation for smooth movement
+        let targetRotationX = 0;
+        let targetRotationY = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (!isCalendarView) {
+                const now = new Date();
+                const h = now.getHours(); const m = now.getMinutes(); const s = now.getSeconds(); const ms = now.getMilliseconds();
+                const sAngle = (s + ms / 1000) * Math.PI / 30;
+                const mAngle = (m + s / 60) * Math.PI / 30;
+                const hAngle = (h % 12 + m / 60) * Math.PI / 6;
+
+                secondHand.rotation.z = -sAngle;
+                minuteHand.rotation.z = -mAngle;
+                hourHand.rotation.z = -hAngle;
+
+                if (isHovering) {
+                    watchFace.material.map = digitalTexture;
+                    hourHand.visible = minuteHand.visible = secondHand.visible = false;
+                    cap.visible = false; // Hide cap in digital mode
+
+                    // Sparky Text Animation
+                    dCtx.clearRect(0, 0, 512, 256);
+
+                    // Neon Glow Text
+                    dCtx.shadowBlur = 20;
+                    dCtx.shadowColor = '#00ffcc';
+                    dCtx.fillStyle = '#e0ffff';
+                    dCtx.font = 'bold 120px "Courier New", monospace';
+                    dCtx.textAlign = 'center';
+                    dCtx.fillText(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`, 256, 160);
+
+                    // Dynamic Sparks (Random Particles)
+                    dCtx.shadowBlur = 5;
+                    dCtx.fillStyle = '#ffffff';
+                    for (let i = 0; i < 15; i++) {
+                        if (Math.random() > 0.5) continue; // Flicker
+                        const x = 100 + Math.random() * 312;
+                        const y = 60 + Math.random() * 100;
+                        const size = Math.random() * 3;
+                        dCtx.beginPath();
+                        dCtx.arc(x, y, size, 0, Math.PI * 2);
+                        dCtx.fill();
+                    }
+
+                    digitalTextTexture.needsUpdate = true;
+                    digitalPlane.material.opacity = 1;
+                } else {
+                    watchFace.material.map = analogTexture;
+                    hourHand.visible = minuteHand.visible = secondHand.visible = true;
+                    cap.visible = true;
+                    digitalPlane.material.opacity = 0;
+                }
+
+                // Interactive Cursor Movement (Parallax)
+                watchGroup.rotation.y += (targetRotationY - watchGroup.rotation.y) * 0.1;
+                watchGroup.rotation.x += (targetRotationX - watchGroup.rotation.x) * 0.1;
+
+                // Add slight floating breathing effect on top
+                watchGroup.position.y = Math.sin(Date.now() * 0.001) * 0.2 + (window.innerWidth <= 992 ? 4 : 0);
+
+            } else {
+                // Cloth Simulation
+                const time = Date.now() * 0.002;
+                const position = calendarMesh.geometry.attributes.position;
+                for (let i = 0; i < position.count; i++) {
+                    const x = position.getX(i);
+                    const y = position.getY(i);
+                    const z = Math.sin(x * 0.5 + time) * 0.2 + Math.sin(y * 0.3 + time * 0.8) * 0.1;
+                    position.setZ(i, z);
+                }
+                position.needsUpdate = true;
+                calendarMesh.geometry.computeVertexNormals();
+
+                // Also apply cursor interaction to calendar
+                calendarGroup.rotation.y += (targetRotationY - calendarGroup.rotation.y) * 0.1;
+                calendarGroup.rotation.x += (targetRotationX - calendarGroup.rotation.x) * 0.1;
+
+                if (window.innerWidth <= 992) calendarGroup.position.y = 4;
+            }
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // --- Interaction Handlers ---
+        const profileCard = document.querySelector('.profile-card');
+        const sidebar = document.querySelector('.sidebar');
+
+        window.addEventListener('mousemove', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            targetRotationY = mouse.x * 0.5;
+            targetRotationX = -mouse.y * 0.5;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children, true);
+
+            let found = false;
+            for (let i = 0; i < intersects.length; i++) {
+                if (intersects[i].object.parent === watchGroup || intersects[i].object === watchGroup ||
+                    intersects[i].object.parent === calendarGroup || intersects[i].object === calendarGroup) {
+                    found = true; break;
+                }
+            }
+            isHovering = found;
+            document.body.style.cursor = found ? 'pointer' : 'default';
+
+            if (found) {
+                profileCard.style.opacity = '0.1';
+                profileCard.style.pointerEvents = 'none';
+                if (window.innerWidth > 992) sidebar.style.opacity = '0.1';
+            } else {
+                profileCard.style.opacity = '1';
+                profileCard.style.pointerEvents = 'auto';
+                if (window.innerWidth > 992) sidebar.style.opacity = '1';
+            }
+        });
+
+        window.addEventListener('dblclick', () => {
+            if (isHovering) {
+                isCalendarView = !isCalendarView;
+                if (isCalendarView) {
+                    watchGroup.visible = false;
+                    calendarGroup.visible = true;
+                    calendarMesh.material.map = createCalendarTexture();
+                } else {
+                    watchGroup.visible = true;
+                    calendarGroup.visible = false;
+                }
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            updateLayout();
+        });
+
+        // --- Form Logic ---
+        const form = document.getElementById('profileForm');
+        const saveBtn = document.getElementById('saveBtn');
+        const alertMsg = document.getElementById('alertMsg');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            try {
+                const formData = new FormData(form);
+                const response = await fetch('/admin/update_profile', { method: 'POST', body: formData });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    alertMsg.className = 'alert alert-success';
+                    alertMsg.textContent = '✓ ' + data.msg;
+                    alertMsg.style.display = 'block';
+                    setTimeout(() => window.location.href = '/admin/dashboard', 1500);
+                } else {
+                    alertMsg.className = 'alert alert-error';
+                    alertMsg.textContent = '✗ ' + data.msg;
+                    alertMsg.style.display = 'block';
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+                }
+            } catch (error) {
+                alertMsg.className = 'alert alert-error';
+                alertMsg.textContent = '✗ Error updating profile';
+                alertMsg.style.display = 'block';
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+            }
+        });
+    </script>
+</body>
+
+</html>
