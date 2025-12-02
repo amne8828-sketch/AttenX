@@ -18,7 +18,7 @@ import numpy as np # NumPy is usually fine, but we can check
 import pickle
 import datetime
 import os
-import faiss
+# import faiss  # Lazy loaded when needed for face recognition
 import base64
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
@@ -163,8 +163,18 @@ faiss_index = None
 person_id_map = []
 
 def initialize_faiss_index():
-    """Initialize FAISS index properly"""
+    """Initialize FAISS index properly with lazy loading"""
     global faiss_index, person_id_map
+    
+    # Lazy import faiss
+    try:
+        import faiss
+    except ImportError:
+        print("⚠️ FAISS not available - face recognition will use remote API")
+        faiss_index = None
+        person_id_map = []
+        return
+    
     # Use data directory for persistence
     data_dir = "data"
     if not os.path.exists(data_dir):
@@ -192,6 +202,13 @@ def save_faiss_index():
     """Save FAISS index to disk"""
     try:
         if faiss_index is not None:
+            # Lazy import faiss
+            try:
+                import faiss
+            except ImportError:
+                print("⚠️ FAISS not available - cannot save index")
+                return
+                
             data_dir = "data"
             if not os.path.exists(data_dir):
                 os.makedirs(data_dir)
