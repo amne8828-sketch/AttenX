@@ -17,6 +17,19 @@ services:
     networks:
       - attendx_network
 
+  # Redis Cache
+  redis:
+    image: redis:7.2-alpine
+    container_name: attendx_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - attendx_network
+
   # Flask Web App
   webapp:
     build:
@@ -29,6 +42,7 @@ services:
     environment:
       - FLASK_SECRET=dev-secret-key-change-in-production
       - MONGODB_URI=mongodb://admin:password123@mongodb:27017/?authSource=admin&serverSelectionTimeoutMS=10000&connectTimeoutMS=10000&socketTimeoutMS=10000
+      - REDIS_URL=redis://redis:6379/0
       - FACE_ENGINE_URL=http://localhost:7860
       - PORT=10000
       - ADMIN_EMAIL=admin@admin.com
@@ -36,6 +50,7 @@ services:
       - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
     depends_on:
       - mongodb
+      - redis
     volumes:
       - ./static/recordings:/app/static/recordings
       - ./static/screenshots:/app/static/screenshots
@@ -65,3 +80,4 @@ networks:
 volumes:
   mongodb_data:
   mongodb_config:
+  redis_data:
