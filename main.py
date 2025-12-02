@@ -35,16 +35,50 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Import function modules
-from function import generate_camera_stream, get_face_embedding, continuous_learning_update, create_3d_template, extract_multi_vector_embeddings, ensemble_matching, search_face_faiss, rebuild_faiss_index
+# Import function modules (optional - will use Face Engine API if not available)
+try:
+    from function import generate_camera_stream, get_face_embedding, continuous_learning_update, create_3d_template, extract_multi_vector_embeddings, ensemble_matching, search_face_faiss, rebuild_faiss_index
+    FACE_RECOGNITION_LOCAL = True
+    print("✅ Local face recognition modules loaded")
+except ImportError as e:
+    print(f"⚠️ Face recognition modules not available: {e}")
+    print("📡 Will use Face Engine API for face recognition")
+    FACE_RECOGNITION_LOCAL = False
+    # Stub functions that will call Face Engine API
+    def generate_camera_stream(*args, **kwargs):
+        raise NotImplementedError("Camera stream requires Face Engine API")
+    def get_face_embedding(*args, **kwargs):
+        return None
+    def continuous_learning_update(*args, **kwargs):
+        pass
+    def create_3d_template(*args, **kwargs):
+        return None
+    def extract_multi_vector_embeddings(*args, **kwargs):
+        return None
+    def ensemble_matching(*args, **kwargs):
+        return None, 0.0
+    def search_face_faiss(*args, **kwargs):
+        return None, 0.0
+    def rebuild_faiss_index(*args, **kwargs):
+        pass
 
 # Import the new super admin module
 from superadmin_module import register_superadmin_module
 from extensions import socketio
 
-# Import advanced enrollment modules
-from enrollment_engine import get_enrollment_engine
-from advanced_liveness_detection import get_liveness_detector
+# Import advanced enrollment modules (optional)
+try:
+    from enrollment_engine import get_enrollment_engine
+    from advanced_liveness_detection import get_liveness_detector
+    ENROLLMENT_ENGINE_AVAILABLE = True
+    print("✅ Enrollment engine modules loaded")
+except ImportError as e:
+    print(f"⚠️ Enrollment engine not available: {e}")
+    ENROLLMENT_ENGINE_AVAILABLE = False
+    def get_enrollment_engine():
+        return None
+    def get_liveness_detector():
+        return None
 
 app = Flask(__name__)
 socketio.init_app(app)
