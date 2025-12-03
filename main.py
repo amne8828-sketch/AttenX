@@ -45,20 +45,59 @@ except ImportError as e:
     print("📡 Will use Face Engine API for face recognition")
     FACE_RECOGNITION_LOCAL = False
     # Stub functions that will call Face Engine API
+    from face_engine_client import face_client
+    
     def generate_camera_stream(*args, **kwargs):
         raise NotImplementedError("Camera stream requires Face Engine API")
-    def get_face_embedding(*args, **kwargs):
+        
+    def get_face_embedding(image, *args, **kwargs):
+        """Get embedding from Face Engine"""
+        if not face_client.is_available():
+            print("❌ Face Engine not available")
+            return None
+        results = face_client.get_embeddings(image)
+        if results:
+            return np.array(results[0]["embedding"])
         return None
+        
     def continuous_learning_update(*args, **kwargs):
         pass
+        
     def create_3d_template(*args, **kwargs):
         return None
-    def extract_multi_vector_embeddings(*args, **kwargs):
+        
+    def extract_multi_vector_embeddings(image, *args, **kwargs):
+        """Get embeddings from Face Engine"""
+        if not face_client.is_available():
+            return None
+        results = face_client.get_embeddings(image)
+        if results:
+            return [np.array(r["embedding"]) for r in results]
         return None
-    def ensemble_matching(*args, **kwargs):
-        return None, 0.0
+        
+    def ensemble_matching(embedding, known_embeddings, *args, **kwargs):
+        """Match embedding against known embeddings (simple cosine similarity)"""
+        if embedding is None or not known_embeddings:
+            return None, 0.0
+            
+        best_score = 0.0
+        best_match = None
+        
+        # Simple cosine similarity
+        for name, known_emb in known_embeddings.items():
+            if isinstance(known_emb, list):
+                known_emb = np.array(known_emb)
+            
+            score = np.dot(embedding, known_emb) / (np.linalg.norm(embedding) * np.linalg.norm(known_emb))
+            if score > best_score:
+                best_score = score
+                best_match = name
+                
+        return best_match, float(best_score)
+        
     def search_face_faiss(*args, **kwargs):
         return None, 0.0
+        
     def rebuild_faiss_index(*args, **kwargs):
         pass
 
