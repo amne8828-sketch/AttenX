@@ -15,7 +15,14 @@ from flask_socketio import emit
 import time
 import requests
 # from ultra_face_recognition import UltraFaceRecognizer
-from simple_face_recognition import SimpleFaceRecognizer
+# Lazy load SimpleFaceRecognizer to avoid ML dependency errors
+try:
+    from simple_face_recognition import SimpleFaceRecognizer
+    SIMPLE_FACE_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ SimpleFaceRecognizer not available: {e}")
+    SIMPLE_FACE_AVAILABLE = False
+    SimpleFaceRecognizer = None
 import concurrent.futures
 import json
 import tempfile
@@ -48,6 +55,9 @@ face_recognizer = None
 def get_face_recognizer():
     global face_recognizer
     if face_recognizer is None:
+        if not SIMPLE_FACE_AVAILABLE or SimpleFaceRecognizer is None:
+            print("⚠️ Face recognizer not available - ML dependencies missing")
+            return None
         try:
             # from ultra_face_recognition import UltraFaceRecognizer
             # face_recognizer = UltraFaceRecognizer()
