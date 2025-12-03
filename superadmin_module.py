@@ -35,12 +35,21 @@ from werkzeug.utils import secure_filename
 #     ASSISTBUDDY_AVAILABLE = False
 #     print("AssistBuddy package not found. Using mock responses.")
 
-from assistbuddy.tool_manager import get_tool_manager
-from assistbuddy.utils.spell_checker import SpellingCorrector
-
-# Initialize AssistBuddy components
-tool_manager = get_tool_manager()
-spell_checker = SpellingCorrector()
+# Lazy load AssistBuddy components
+try:
+    from assistbuddy.tool_manager import get_tool_manager
+    from assistbuddy.utils.spell_checker import SpellingCorrector
+    
+    # Initialize AssistBuddy components
+    tool_manager = get_tool_manager()
+    spell_checker = SpellingCorrector()
+    ASSISTBUDDY_AVAILABLE = True
+    print("✅ AssistBuddy loaded successfully")
+except ImportError as e:
+    print(f"⚠️ AssistBuddy not available (ML dependencies missing): {e}")
+    ASSISTBUDDY_AVAILABLE = False
+    tool_manager = None
+    spell_checker = None
 
 # Create Blueprint
 superadmin_bp = Blueprint('superadmin', __name__, url_prefix='/superadmin')
